@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
 import { CheckCircle2, Clock3, Copy, LoaderCircle, LogOut } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "./components/ui/button";
 import {
   Card,
@@ -12,6 +13,7 @@ import {
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
 import { Textarea } from "./components/ui/textarea";
+import { Toaster } from "./components/ui/sonner";
 import { CapWidget, type CapHandle } from "./components/CapWidget";
 const api = String(import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 const siteName = import.meta.env.VITE_SITE_NAME || "夜轻面板兑换页";
@@ -43,7 +45,6 @@ function Redeem() {
     [password, setPassword] = useState(""),
     [capToken, setCapToken] = useState(""),
     [task, setTask] = useState<any>(),
-    [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   const cap = useRef<CapHandle>(null);
   useEffect(() => {
@@ -52,15 +53,26 @@ function Redeem() {
       () =>
         json(`/api/tasks/${task.id}`)
           .then(setTask)
-          .catch((e) => setError(e.message)),
+          .catch((e) =>
+            toast.error("查询任务失败", {
+              id: "task-poll-error",
+              description: e.message,
+            }),
+          ),
       1500,
     );
     return () => clearInterval(id);
   }, [task?.id, task?.status]);
+  useEffect(() => {
+    if (task?.status === "success") {
+      toast.success(action === "provision" ? "开通成功" : "续费成功");
+    } else if (task?.status === "failed") {
+      toast.error("兑换失败", { description: task.error });
+    }
+  }, [task?.status]);
   async function submit(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
-    setError("");
     try {
       setTask(
         await json("/api/tasks", {
@@ -70,14 +82,22 @@ function Redeem() {
         }),
       );
     } catch (e) {
-      setError((e as Error).message);
+      const message = (e as Error).message;
+      toast.error("提交失败", { description: message });
     } finally {
       setBusy(false);
       setCapToken("");
       cap.current?.reset();
     }
   }
-  const copy = (v: string) => navigator.clipboard.writeText(v);
+  async function copy(value: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success("复制成功");
+    } catch {
+      toast.error("复制失败，请手动复制");
+    }
+  }
   return (
     <Card>
       <CardHeader>
@@ -103,14 +123,22 @@ function Redeem() {
         </div>
         {(!task || task.status === "failed") && (
           <form className="grid gap-5" onSubmit={submit}>
-            {action === "renew" && (
-              <>
+            <div
+              className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${
+                action === "renew"
+                  ? "grid-rows-[1fr] opacity-100"
+                  : "grid-rows-[0fr] opacity-0"
+              }`}
+              aria-hidden={action !== "renew"}
+            >
+              <div className="grid min-h-0 gap-5 overflow-hidden">
                 <Field label="用户名">
                   <Input
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     autoComplete="username"
-                    required
+                    disabled={action !== "renew"}
+                    required={action === "renew"}
                   />
                 </Field>
                 <Field label="密码">
@@ -119,11 +147,12 @@ function Redeem() {
                     onChange={(e) => setPassword(e.target.value)}
                     type="password"
                     autoComplete="current-password"
-                    required
+                    disabled={action !== "renew"}
+                    required={action === "renew"}
                   />
                 </Field>
-              </>
-            )}
+              </div>
+            </div>
             <Field label="卡密">
               <Input
                 value={code}
@@ -199,11 +228,6 @@ function Redeem() {
             </p>
           </div>
         )}
-        {(error || task?.error) && (
-          <p className="mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-            {error || task.error}
-          </p>
-        )}
       </CardContent>
     </Card>
   );
@@ -214,8 +238,7 @@ function Admin() {
     [capToken, setCapToken] = useState(""),
     [months, setMonths] = useState(1),
     [codes, setCodes] = useState(""),
-    [counts, setCounts] = useState<any>({}),
-    [message, setMessage] = useState("");
+    [counts, setCounts] = useState<any>({});
   const cap = useRef<CapHandle>(null);
   const req = (p: string, o: RequestInit = {}) =>
     json(p, {
@@ -242,8 +265,10 @@ function Admin() {
       });
       setPassword("");
       await load();
+      toast.success("登录成功");
     } catch (e) {
-      setMessage((e as Error).message);
+      const message = (e as Error).message;
+      toast.error("登录失败", { description: message });
     } finally {
       setCapToken("");
       cap.current?.reset();
@@ -256,11 +281,23 @@ function Admin() {
         method: "POST",
         body: JSON.stringify({ months, codes }),
       });
-      setMessage(`新增 ${x.added} 张，重复 ${x.duplicates} 张`);
+      const result = `新增 ${x.added} 张，重复 ${x.duplicates} 张`;
       setCodes("");
       await load();
+      toast.success("批量导入完成", { description: result });
     } catch (e) {
-      setMessage((e as Error).message);
+      const message = (e as Error).message;
+      toast.error("批量导入失败", { description: message });
+    }
+  }
+  async function logout() {
+    try {
+      await req("/api/admin/logout", { method: "POST" });
+      setLogged(false);
+      toast.success("已退出登录");
+    } catch (e) {
+      const message = (e as Error).message;
+      toast.error("退出失败", { description: message });
     }
   }
   return (
@@ -313,21 +350,13 @@ function Admin() {
                 />
               </Field>
               <Button>批量导入</Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={async () => {
-                  await req("/api/admin/logout", { method: "POST" });
-                  setLogged(false);
-                }}
-              >
+              <Button type="button" variant="outline" onClick={logout}>
                 <LogOut className="size-4" />
                 退出登录
               </Button>
             </form>
           </>
         )}
-        {message && <p className="mt-4 text-sm">{message}</p>}
       </CardContent>
     </Card>
   );
@@ -349,6 +378,7 @@ export default function App() {
           <Route path="/admin" element={<Admin />} />
         </Routes>
       </main>
+      <Toaster />
     </BrowserRouter>
   );
 }
