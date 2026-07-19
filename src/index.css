@@ -60,13 +60,18 @@ main > * {
 .result {
   display: flex;
   align-items: center;
+  min-height: 36px;
   gap: 10px;
 }
 .result code {
   margin-left: auto;
-  border-radius: 6px;
-  background: var(--muted);
-  padding: 5px 8px;
+  cursor: pointer;
+}
+.result code:hover,
+.result code:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  outline: none;
 }
 .stat {
   display: flex;
@@ -81,6 +86,6 @@ main > * {
   color: var(--foreground);
 }
 [data-sonner-toast].copy-toast[data-mounted="false"] {
-  transform: var(--y) translateX(-120%);
+  transform: var(--y) translateX(120%);
   opacity: 0;
 }

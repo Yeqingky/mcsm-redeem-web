@@ -1,6 +1,12 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import {
+  FormEvent,
+  type KeyboardEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
-import { CheckCircle2, Clock3, Copy, LoaderCircle, LogOut } from "lucide-react";
+import { CheckCircle2, Clock3, LoaderCircle, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "./components/ui/button";
 import {
@@ -17,6 +23,7 @@ import { Toaster } from "./components/ui/sonner";
 import { CapWidget, type CapHandle } from "./components/CapWidget";
 const api = String(import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 const siteName = import.meta.env.VITE_SITE_NAME || "夜轻面板兑换页";
+const panelUrl = "https://mcsm.yeqing.net/";
 document.title = siteName;
 async function json(path: string, opt: RequestInit = {}) {
   const r = await fetch(api + path, opt);
@@ -40,6 +47,9 @@ function Field({
 }
 function Redeem() {
   const [action, setAction] = useState<"provision" | "renew">("provision"),
+    [submittedAction, setSubmittedAction] = useState<"provision" | "renew">(
+      "provision",
+    ),
     [code, setCode] = useState(""),
     [username, setUsername] = useState(""),
     [password, setPassword] = useState(""),
@@ -65,7 +75,7 @@ function Redeem() {
   }, [task?.id, task?.status]);
   useEffect(() => {
     if (task?.status === "success") {
-      toast.success(action === "provision" ? "开通成功" : "续费成功");
+      toast.success(submittedAction === "provision" ? "开通成功" : "续费成功");
     } else if (task?.status === "failed") {
       toast.error("兑换失败", { description: task.error });
     }
@@ -73,6 +83,7 @@ function Redeem() {
   async function submit(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
+    setSubmittedAction(action);
     try {
       setTask(
         await json("/api/tasks", {
@@ -98,6 +109,18 @@ function Redeem() {
       toast.error("复制失败，请手动复制");
     }
   }
+  function copyOnKeyDown(event: KeyboardEvent<HTMLElement>, value: string) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      copy(value);
+    }
+  }
+  function changeAction(nextAction: "provision" | "renew") {
+    if (nextAction !== action && task?.status === "success") {
+      setTask(undefined);
+    }
+    setAction(nextAction);
+  }
   return (
     <Card>
       <CardHeader>
@@ -109,14 +132,14 @@ function Redeem() {
           <Button
             type="button"
             variant={action === "provision" ? "default" : "ghost"}
-            onClick={() => setAction("provision")}
+            onClick={() => changeAction("provision")}
           >
             开通实例
           </Button>
           <Button
             type="button"
             variant={action === "renew" ? "default" : "ghost"}
-            onClick={() => setAction("renew")}
+            onClick={() => changeAction("renew")}
           >
             续费实例
           </Button>
@@ -181,42 +204,53 @@ function Redeem() {
         )}
         {task?.status === "success" && (
           <div className="grid gap-4 py-4">
-            <CheckCircle2 className="size-10 text-emerald-600" />
-            <h3 className="text-xl font-semibold">
-              {action === "provision" ? "开通成功" : "续费成功"}
-            </h3>
-            {action === "provision" && (
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="size-10 shrink-0 text-emerald-600" />
+              <h3 className="text-2xl font-semibold">
+                {submittedAction === "provision" ? "开通成功" : "续费成功"}
+              </h3>
+            </div>
+            {submittedAction === "provision" && (
               <>
                 <p className="result">
-                  用户名 <code>{task.result.username}</code>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copy(task.result.username)}
+                  使用地址
+                  <a
+                    className="ml-auto text-primary underline-offset-4 hover:underline"
+                    href={panelUrl}
+                    target="_blank"
+                    rel="noreferrer"
                   >
-                    <Copy className="size-4" />
-                  </Button>
+                    {panelUrl}
+                  </a>
                 </p>
                 <p className="result">
-                  密码 <code>{task.result.password}</code>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copy(task.result.password)}
+                  用户名
+                  <code
+                    role="button"
+                    tabIndex={0}
+                    title="点击复制用户名"
+                    onClick={() => copy(task.result.username)}
+                    onKeyDown={(event) =>
+                      copyOnKeyDown(event, task.result.username)
+                    }
                   >
-                    <Copy className="size-4" />
-                  </Button>
+                    {task.result.username}
+                  </code>
                 </p>
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    copy(
-                      `用户名：${task.result.username}\n密码：${task.result.password}`,
-                    )
-                  }
-                >
-                  复制全部信息
-                </Button>
+                <p className="result">
+                  密码
+                  <code
+                    role="button"
+                    tabIndex={0}
+                    title="点击复制密码"
+                    onClick={() => copy(task.result.password)}
+                    onKeyDown={(event) =>
+                      copyOnKeyDown(event, task.result.password)
+                    }
+                  >
+                    {task.result.password}
+                  </code>
+                </p>
                 <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-900">
                   系统不会保存账号密码，请立即保存到密码管理器。关闭或刷新页面后可能无法再次查看。
                 </p>
