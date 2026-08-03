@@ -5,7 +5,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
 import { CheckCircle2, Clock3, LoaderCircle, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "./components/ui/button";
@@ -24,7 +23,40 @@ import { CapWidget, type CapHandle } from "./components/CapWidget";
 const api = String(import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 const siteName = import.meta.env.VITE_SITE_NAME || "夜轻面板兑换页";
 const panelUrl = "https://mcsm.yeqing.net/";
+const maxRedeemDays = 106751;
+type CodeCount = { days: number; count: number };
+type CodeStatus = {
+  code: string;
+  days: number;
+  used: boolean;
+  usedAt: number | null;
+  username: string;
+  password: string;
+  ipAddress: string;
+};
+type ImportResult = {
+  added: number;
+  duplicates: number;
+  failed: number;
+  duplicateCodes: string[];
+  failedCodes: string[];
+};
+type NoticeOptions = { description?: string; id?: string };
 document.title = siteName;
+function notify(
+  level: "success" | "error",
+  title: string,
+  options: NoticeOptions = {},
+) {
+  const detail = options.description || "";
+  if (level === "error") {
+    console.error(`[通知] ${title}`, detail);
+    toast.error(title, { ...options, duration: 5000 });
+  } else {
+    console.info(`[通知] ${title}`, detail);
+    toast.success(title, { ...options, duration: 5000 });
+  }
+}
 async function json(path: string, opt: RequestInit = {}) {
   const r = await fetch(api + path, opt);
   const x = r.status === 204 ? {} : await r.json();
@@ -51,8 +83,7 @@ function Redeem() {
       "provision",
     ),
     [code, setCode] = useState(""),
-    [username, setUsername] = useState(""),
-    [password, setPassword] = useState(""),
+    [instanceId, setInstanceId] = useState(""),
     [capToken, setCapToken] = useState(""),
     [task, setTask] = useState<any>(),
     [busy, setBusy] = useState(false);
@@ -64,7 +95,7 @@ function Redeem() {
         json(`/api/tasks/${task.id}`)
           .then(setTask)
           .catch((e) =>
-            toast.error("查询任务失败", {
+            notify("error", "查询任务失败", {
               id: "task-poll-error",
               description: e.message,
             }),
@@ -75,9 +106,12 @@ function Redeem() {
   }, [task?.id, task?.status]);
   useEffect(() => {
     if (task?.status === "success") {
-      toast.success(submittedAction === "provision" ? "开通成功" : "续费成功");
+      notify(
+        "success",
+        submittedAction === "provision" ? "开通成功" : "续费成功",
+      );
     } else if (task?.status === "failed") {
-      toast.error("兑换失败", { description: task.error });
+      notify("error", "兑换失败", { description: task.error });
     }
   }, [task?.status]);
   async function submit(e: FormEvent) {
@@ -89,12 +123,17 @@ function Redeem() {
         await json("/api/tasks", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action, code, username, password, capToken }),
+          body: JSON.stringify({
+            action,
+            code,
+            instanceId: action === "renew" ? instanceId : "",
+            capToken,
+          }),
         }),
       );
     } catch (e) {
       const message = (e as Error).message;
-      toast.error("提交失败", { description: message });
+      notify("error", "提交失败", { description: message });
     } finally {
       setBusy(false);
       setCapToken("");
@@ -104,9 +143,9 @@ function Redeem() {
   async function copy(value: string) {
     try {
       await navigator.clipboard.writeText(value);
-      toast.success("复制成功");
+      notify("success", "复制成功");
     } catch {
-      toast.error("复制失败，请手动复制");
+      notify("error", "复制失败，请手动复制");
     }
   }
   function copyOnKeyDown(event: KeyboardEvent<HTMLElement>, value: string) {
@@ -154,22 +193,12 @@ function Redeem() {
               }`}
               aria-hidden={action !== "renew"}
             >
-              <div className="grid min-h-0 gap-5 overflow-hidden">
-                <Field label="用户名">
+              <div className="min-h-0 overflow-hidden">
+                <Field label="实例 ID">
                   <Input
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    autoComplete="username"
-                    disabled={action !== "renew"}
-                    required={action === "renew"}
-                  />
-                </Field>
-                <Field label="密码">
-                  <Input
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    type="password"
-                    autoComplete="current-password"
+                    value={instanceId}
+                    onChange={(e) => setInstanceId(e.target.value)}
+                    autoComplete="off"
                     disabled={action !== "renew"}
                     required={action === "renew"}
                   />
@@ -210,6 +239,20 @@ function Redeem() {
                 {submittedAction === "provision" ? "开通成功" : "续费成功"}
               </h3>
             </div>
+            <p className="result">
+              实例 ID
+              <code
+                role="button"
+                tabIndex={0}
+                title="点击复制实例 ID"
+                onClick={() => copy(task.result.instanceId)}
+                onKeyDown={(event) =>
+                  copyOnKeyDown(event, task.result.instanceId)
+                }
+              >
+                {task.result.instanceId}
+              </code>
+            </p>
             {submittedAction === "provision" && (
               <>
                 <p className="result">
@@ -252,7 +295,7 @@ function Redeem() {
                   </code>
                 </p>
                 <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-900">
-                  系统不会保存账号密码，请立即保存到密码管理器。关闭或刷新页面后可能无法再次查看。
+                  请立即保存账号密码，也可在卡密管理页凭卡密查询。
                 </p>
               </>
             )}
@@ -270,16 +313,20 @@ function Admin() {
   const [logged, setLogged] = useState(false),
     [password, setPassword] = useState(""),
     [capToken, setCapToken] = useState(""),
-    [months, setMonths] = useState(1),
+    [days, setDays] = useState(30),
     [codes, setCodes] = useState(""),
-    [counts, setCounts] = useState<any>({});
-  const cap = useRef<CapHandle>(null);
-  const req = (p: string, o: RequestInit = {}) =>
-    json(p, {
-      credentials: "include",
-      ...o,
-      headers: { "Content-Type": "application/json", ...(o.headers || {}) },
-    });
+    [counts, setCounts] = useState<CodeCount[]>([]),
+    [queryCode, setQueryCode] = useState(""),
+    [codeStatus, setCodeStatus] = useState<CodeStatus>();
+  const cap = useRef<CapHandle>(null),
+    initialLoadStarted = useRef(false);
+  const req = (p: string, o: RequestInit = {}) => {
+    const headers = new Headers(o.headers);
+    if (o.body !== undefined && !headers.has("Content-Type")) {
+      headers.set("Content-Type", "application/json");
+    }
+    return json(p, { ...o, credentials: "include", headers });
+  };
   const load = () =>
     req("/api/admin/codes/counts")
       .then((x) => {
@@ -288,6 +335,8 @@ function Admin() {
       })
       .catch(() => setLogged(false));
   useEffect(() => {
+    if (initialLoadStarted.current) return;
+    initialLoadStarted.current = true;
     load();
   }, []);
   async function login(e: FormEvent) {
@@ -299,10 +348,10 @@ function Admin() {
       });
       setPassword("");
       await load();
-      toast.success("登录成功");
+      notify("success", "登录成功");
     } catch (e) {
       const message = (e as Error).message;
-      toast.error("登录失败", { description: message });
+      notify("error", "登录失败", { description: message });
     } finally {
       setCapToken("");
       cap.current?.reset();
@@ -311,34 +360,56 @@ function Admin() {
   async function imports(e: FormEvent) {
     e.preventDefault();
     try {
-      const x = await req("/api/admin/codes/import", {
+      const x = (await req("/api/admin/codes/import", {
         method: "POST",
-        body: JSON.stringify({ months, codes }),
-      });
-      const result = `新增 ${x.added} 张，重复 ${x.duplicates} 张`;
+        body: JSON.stringify({ days, codes }),
+      })) as ImportResult;
+      console.info("[卡密导入] 接口返回", x);
+      if (x.duplicateCodes.length > 0) {
+        console.warn("[卡密导入] 重复卡密", x.duplicateCodes);
+      }
+      if (x.failedCodes.length > 0) {
+        console.error("[卡密导入] 失败卡密", x.failedCodes);
+      }
+      const result = `新增 ${x.added} 张，重复 ${x.duplicates} 张，失败 ${x.failed} 张`;
       setCodes("");
       await load();
-      toast.success("批量导入完成", { description: result });
+      notify("success", "批量导入完成", { description: result });
     } catch (e) {
       const message = (e as Error).message;
-      toast.error("批量导入失败", { description: message });
+      notify("error", "批量导入失败", { description: message });
+    }
+  }
+  async function lookup(e: FormEvent) {
+    e.preventDefault();
+    try {
+      const status = await req("/api/admin/codes/status", {
+        method: "POST",
+        body: JSON.stringify({ code: queryCode }),
+      });
+      setCodeStatus(status);
+    } catch (e) {
+      setCodeStatus(undefined);
+      const message = (e as Error).message;
+      notify("error", "查询失败", { description: message });
     }
   }
   async function logout() {
     try {
       await req("/api/admin/logout", { method: "POST" });
       setLogged(false);
-      toast.success("已退出登录");
+      setCodeStatus(undefined);
+      notify("success", "已退出登录");
     } catch (e) {
       const message = (e as Error).message;
-      toast.error("退出失败", { description: message });
+      notify("error", "退出失败", { description: message });
     }
   }
   return (
     <Card>
       <CardHeader>
         <CardTitle>卡密管理</CardTitle>
-        <CardDescription>批量导入一个月或三个月卡密</CardDescription>
+        <CardDescription>查询卡密状态，或批量导入指定有效天数的卡密</CardDescription>
       </CardHeader>
       <CardContent>
         {!logged ? (
@@ -356,24 +427,74 @@ function Admin() {
           </form>
         ) : (
           <>
-            <div className="mb-6 grid grid-cols-2 gap-3">
-              <div className="stat">
-                一个月卡密<strong>{counts.one_month || 0}</strong>
+            {counts.length > 0 ? (
+              <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {counts.map((item) => (
+                  <div className="stat" key={item.days}>
+                    {item.days} 天卡密<strong>{item.count}</strong>
+                  </div>
+                ))}
               </div>
-              <div className="stat">
-                三个月卡密<strong>{counts.three_month || 0}</strong>
+            ) : (
+              <p className="mb-6 text-sm text-muted-foreground">
+                暂无未使用卡密
+              </p>
+            )}
+            <form
+              className="mb-6 grid gap-3 rounded-lg border p-4"
+              onSubmit={lookup}
+            >
+              <Field label="查询卡密状态">
+                <div className="flex gap-3">
+                  <Input
+                    value={queryCode}
+                    onChange={(e) => setQueryCode(e.target.value)}
+                    autoComplete="off"
+                    required
+                  />
+                  <Button type="submit" variant="outline" className="shrink-0">
+                    查询
+                  </Button>
+                </div>
+              </Field>
+            </form>
+            {codeStatus && (
+              <div className="mb-6 grid gap-2 rounded-lg border p-4 text-sm">
+                <div className="flex items-start justify-between gap-4">
+                  <code className="break-all">{codeStatus.code}</code>
+                  <strong className="shrink-0">
+                    {codeStatus.used ? "已使用" : "未使用"}
+                  </strong>
+                </div>
+                <p>有效天数：{codeStatus.days} 天</p>
+                {codeStatus.used && (
+                  <>
+                    <p>
+                      使用时间：
+                      {codeStatus.usedAt
+                        ? new Date(codeStatus.usedAt).toLocaleString()
+                        : "—"}
+                    </p>
+                    <p>IP 地址：{codeStatus.ipAddress || "—"}</p>
+                    <p>用户名：{codeStatus.username || "—"}</p>
+                    <p>
+                      密码：<code>{codeStatus.password || "—"}</code>
+                    </p>
+                  </>
+                )}
               </div>
-            </div>
+            )}
             <form className="grid gap-5" onSubmit={imports}>
-              <Field label="卡密类型">
-                <select
-                  className="h-10 rounded-md border bg-background px-3"
-                  value={months}
-                  onChange={(e) => setMonths(Number(e.target.value))}
-                >
-                  <option value={1}>一个月</option>
-                  <option value={3}>三个月</option>
-                </select>
+              <Field label="有效天数">
+                <Input
+                  type="number"
+                  min={1}
+                  max={maxRedeemDays}
+                  step={1}
+                  value={days}
+                  onChange={(e) => setDays(Number(e.target.value))}
+                  required
+                />
               </Field>
               <Field label="每行一张卡密">
                 <Textarea
@@ -396,23 +517,23 @@ function Admin() {
   );
 }
 export default function App() {
+  const requestedPath = window.location.pathname;
+  const page = requestedPath === "/admin" ? <Admin /> : <Redeem />;
+  if (requestedPath !== "/" && requestedPath !== "/admin") {
+    window.history.replaceState(null, "", "/");
+  }
   return (
-    <BrowserRouter>
+    <>
       <header>
-        <Link className="font-semibold" to="/">
+        <a className="font-semibold" href="/">
           {siteName}
-        </Link>
-        <Link className="text-sm text-muted-foreground" to="/admin">
+        </a>
+        <a className="text-sm text-muted-foreground" href="/admin">
           卡密管理
-        </Link>
+        </a>
       </header>
-      <main>
-        <Routes>
-          <Route path="/" element={<Redeem />} />
-          <Route path="/admin" element={<Admin />} />
-        </Routes>
-      </main>
+      <main>{page}</main>
       <Toaster />
-    </BrowserRouter>
+    </>
   );
 }

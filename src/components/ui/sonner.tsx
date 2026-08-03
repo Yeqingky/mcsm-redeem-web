@@ -4,7 +4,7 @@ function Toaster(props: ToasterProps) {
   return (
     <Sonner
       position="bottom-right"
-      duration={3000}
+      duration={5000}
       richColors
       toastOptions={{ className: "copy-toast" }}
       {...props}
