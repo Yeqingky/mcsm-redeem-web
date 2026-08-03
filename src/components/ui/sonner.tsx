@@ -5,8 +5,9 @@ function Toaster(props: ToasterProps) {
     <Sonner
       position="bottom-right"
       duration={5000}
+      visibleToasts={3}
+      expand
       richColors
-      toastOptions={{ className: "copy-toast" }}
       {...props}
     />
   );

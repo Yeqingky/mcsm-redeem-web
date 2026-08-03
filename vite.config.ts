@@ -14,14 +14,15 @@ export default defineConfig(({ mode }) => {
       "import.meta.env.VITE_API_BASE_URL": JSON.stringify(
         value("VITE_API_BASE_URL", "http://localhost:8080"),
       ),
-      "import.meta.env.VITE_CAP_URL": JSON.stringify(
-        value("VITE_CAP_URL", ""),
-      ),
+      "import.meta.env.VITE_CAP_URL": JSON.stringify(value("VITE_CAP_URL", "")),
       "import.meta.env.VITE_CAP_SITE_KEY": JSON.stringify(
         value("VITE_CAP_SITE_KEY", ""),
       ),
       "import.meta.env.VITE_SITE_NAME": JSON.stringify(
         value("VITE_SITE_NAME", "夜轻面板兑换页"),
+      ),
+      "import.meta.env.VITE_PANEL_URL": JSON.stringify(
+        value("VITE_PANEL_URL", ""),
       ),
     },
   };

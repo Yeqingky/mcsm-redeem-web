@@ -6,6 +6,8 @@
 
 MCSManager 卡密兑换系统的独立 React 前端，使用 React 19、TypeScript、Vite、shadcn/ui、Tailwind CSS 与 Cap Widget。
 
+右上角入口为“管理面板”。登录后左侧提供卡密管理和套餐管理导航：卡密管理使用固定高度分页表格，顶部支持状态与套餐多选筛选（不选择表示全部）、本地生成 UUID 卡密、卡密搜索、导入和批量启用/禁用；套餐管理可以创建、编辑或删除套餐，并为每个套餐分别配置 MCSManager 实例参数。Docker 镜像支持搜索，并从目标节点已有镜像中选择。卡密使用 UUID 格式，有效天数在导入时独立填写，不属于套餐。兑换成功后的结果默认可在 10 分钟内凭任务 ID 重复查询。
+
 ## 本地开发
 
 ```bash
@@ -26,12 +28,13 @@ npm run dev
 cp .env.example .env
 ```
 
-| 变量 | 是否必填 | 说明 | 默认值或示例 |
-| --- | --- | --- | --- |
-| `VITE_API_BASE_URL` | 是 | 浏览器可访问的后端 API 基础地址，不要以 `/` 结尾 | `http://localhost:8080` |
-| `VITE_CAP_URL` | 是 | 浏览器可访问的 Cap 验证服务基础地址 | `https://cap.example.com` |
-| `VITE_CAP_SITE_KEY` | 是 | Cap 的公开 Site Key | `your-site-key` |
-| `VITE_SITE_NAME` | 否 | 页面左上角名称和浏览器标签页标题 | `夜轻面板兑换页` |
+| 变量                | 是否必填 | 说明                                             | 默认值或示例                |
+| ------------------- | -------- | ------------------------------------------------ | --------------------------- |
+| `VITE_API_BASE_URL` | 是       | 浏览器可访问的后端 API 基础地址，不要以 `/` 结尾 | `http://localhost:8080`     |
+| `VITE_CAP_URL`      | 是       | 浏览器可访问的 Cap 验证服务基础地址              | `https://cap.example.com`   |
+| `VITE_CAP_SITE_KEY` | 是       | Cap 的公开 Site Key                              | `your-site-key`             |
+| `VITE_SITE_NAME`    | 否       | 页面左上角名称和浏览器标签页标题                 | `夜轻面板兑换页`            |
+| `VITE_PANEL_URL`    | 是       | 兑换成功后引导用户访问的 MCSManager 地址         | `https://mcsm.example.com/` |
 
 所有以 `VITE_` 开头的变量都会在构建时写入前端资源，任何访问者都可以查看。请勿在这些变量中填写 Cap Secret、MCSManager API Key、管理员密码或其他私密凭据。修改变量后需重新运行 `npm run dev` 或重新构建部署。
 

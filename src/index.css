@@ -57,6 +57,20 @@ main {
 main > * {
   width: 100%;
 }
+.admin-main {
+  max-width: 1440px;
+  align-items: flex-start;
+}
+.admin-login {
+  display: flex;
+  min-height: calc(100vh - 112px);
+  align-items: center;
+}
+.admin-shell {
+  display: flex;
+  height: calc(100vh - 112px);
+  min-height: 520px;
+}
 .result {
   display: flex;
   align-items: center;
@@ -76,16 +90,52 @@ main > * {
 .stat {
   display: flex;
   flex-direction: column;
+  border: 1px solid transparent;
   border-radius: 10px;
   background: var(--muted);
   padding: 14px;
   color: var(--muted-foreground);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+.stat:hover {
+  border-color: var(--ring);
+  background: var(--accent);
+}
+.stat:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
 .stat strong {
   font-size: 24px;
   color: var(--foreground);
 }
-[data-sonner-toast].copy-toast[data-mounted="false"] {
-  transform: var(--y) translateX(120%);
-  opacity: 0;
+.category-panel {
+  animation: category-panel-in 300ms ease-out;
+}
+@keyframes category-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .category-panel {
+    animation: none;
+  }
+}
+@media (max-width: 767px) {
+  .admin-shell {
+    flex-direction: column;
+  }
+  .admin-sidebar {
+    overflow-x: auto;
+  }
 }
