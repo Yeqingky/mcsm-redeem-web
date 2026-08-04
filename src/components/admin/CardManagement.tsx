@@ -1,8 +1,11 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArrowDown,
+  ArrowUp,
   Ban,
   ChevronLeft,
   ChevronRight,
+  ChevronsUpDown,
   Copy,
   Eye,
   LoaderCircle,
@@ -106,6 +109,39 @@ function StatusBadge({ status }: { status: CodeState }) {
   );
 }
 
+function SortHeader({
+  label,
+  active,
+  direction,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  direction: "asc" | "desc";
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="inline-flex items-center gap-1 transition-opacity duration-100 hover:opacity-70 active:scale-[0.97] active:opacity-50 motion-reduce:transition-none motion-reduce:active:scale-100"
+      title={`按${label}排序`}
+      aria-label={`按${label}排序，当前${active ? (direction === "asc" ? "升序" : "降序") : "未启用"}`}
+      onClick={onClick}
+    >
+      {label}
+      {active ? (
+        direction === "asc" ? (
+          <ArrowUp className="size-3.5" />
+        ) : (
+          <ArrowDown className="size-3.5" />
+        )
+      ) : (
+        <ChevronsUpDown className="size-3.5 opacity-50" />
+      )}
+    </button>
+  );
+}
+
 export function CardManagement({
   request,
   notify,
@@ -119,7 +155,11 @@ export function CardManagement({
   const [skuIDs, setSkuIDs] = useState<number[]>([]);
   const [search, setSearch] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
-  const [list, setList] = useState<CodeList>();
+  const [allCodes, setAllCodes] = useState<CodeRecord[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+  const [sort, setSort] = useState<"createdAt" | "usedAt">("createdAt");
+  const [order, setOrder] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(initialPageSize);
   const [loading, setLoading] = useState(false);
@@ -153,39 +193,39 @@ export function CardManagement({
   useEffect(() => {
     const revision = ++requestRevision.current;
     setLoading(true);
-    const params = new URLSearchParams({
-      limit: String(pageSize),
-      offset: String((page - 1) * pageSize),
-    });
-    if (states.length > 0) params.set("status", states.join(","));
-    if (skuIDs.length > 0) params.set("skuId", skuIDs.join(","));
-    if (appliedSearch) params.set("query", appliedSearch);
-    request<CodeList>(`/api/admin/codes?${params}`)
-      .then((result) => {
+    const baseParams = new URLSearchParams({ limit: "500" });
+    if (states.length > 0) baseParams.set("status", states.join(","));
+    if (skuIDs.length > 0) baseParams.set("skuId", skuIDs.join(","));
+    if (appliedSearch) baseParams.set("query", appliedSearch);
+    void (async () => {
+      try {
+        const first = await request<CodeList>(`/api/admin/codes?${baseParams}`);
+        const items = [...first.items];
+        while (items.length < first.total) {
+          const offsetParams = new URLSearchParams(baseParams);
+          offsetParams.set("offset", String(items.length));
+          const more = await request<CodeList>(
+            `/api/admin/codes?${offsetParams}`,
+          );
+          if (more.items.length === 0) break;
+          items.push(...more.items);
+        }
         if (revision !== requestRevision.current) return;
-        setList(result);
+        setAllCodes(items);
+        setTotal(first.total);
+        setLoaded(true);
         setSelected(new Set());
-      })
-      .catch((error: Error) => {
+      } catch (error) {
         if (revision === requestRevision.current) {
           notify("error", "读取卡密列表失败", {
-            description: error.message,
+            description: (error as Error).message,
           });
         }
-      })
-      .finally(() => {
+      } finally {
         if (revision === requestRevision.current) setLoading(false);
-      });
-  }, [
-    appliedSearch,
-    notify,
-    page,
-    pageSize,
-    refreshRevision,
-    request,
-    skuIDs,
-    states,
-  ]);
+      }
+    })();
+  }, [appliedSearch, notify, refreshRevision, request, skuIDs, states]);
 
   function updateStates(value: CodeState[]) {
     setPage(1);
@@ -203,6 +243,33 @@ export function CardManagement({
     setAppliedSearch(search.trim());
   }
 
+  function updateSort(field: "createdAt" | "usedAt") {
+    setPage(1);
+    if (sort === field) {
+      setOrder((value) => (value === "asc" ? "desc" : "asc"));
+    } else {
+      setSort(field);
+      setOrder("desc");
+    }
+  }
+
+  const sortedItems = useMemo(() => {
+    const items = [...allCodes];
+    const direction = order === "asc" ? 1 : -1;
+    items.sort((a, b) => {
+      const av = sort === "createdAt" ? a.createdAt : (a.usedAt ?? -Infinity);
+      const bv = sort === "createdAt" ? b.createdAt : (b.usedAt ?? -Infinity);
+      if (av < bv) return -direction;
+      if (av > bv) return direction;
+      return a.code < b.code ? -1 : a.code > b.code ? 1 : 0;
+    });
+    return items;
+  }, [allCodes, order, sort]);
+
+  const pageItems = sortedItems.slice((page - 1) * pageSize, page * pageSize);
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const currentCodes = pageItems.map((item) => item.code);
+
   function selectCode(code: string, checked: boolean) {
     setSelected((current) => {
       const next = new Set(current);
@@ -212,12 +279,10 @@ export function CardManagement({
     });
   }
 
-  const currentCodes = list?.items.map((item) => item.code) ?? [];
   const allSelected =
     currentCodes.length > 0 && currentCodes.every((code) => selected.has(code));
   const someSelected = currentCodes.some((code) => selected.has(code));
-  const selectedRows =
-    list?.items.filter((item) => selected.has(item.code)) ?? [];
+  const selectedRows = pageItems.filter((item) => selected.has(item.code));
   const canDisable =
     selectedRows.length > 0 && selectedRows.every((item) => item.status === 0);
   const canEnable =
@@ -341,7 +406,6 @@ export function CardManagement({
     }
   }
 
-  const pageCount = Math.max(1, Math.ceil((list?.total ?? 0) / pageSize));
   return (
     <div className="flex h-full min-h-0 flex-col gap-5">
       <div>
@@ -466,10 +530,20 @@ export function CardManagement({
                 用户名
               </th>
               <th className="sticky top-0 z-20 whitespace-nowrap bg-muted px-4 py-3 font-medium">
-                创建时间
+                <SortHeader
+                  label="创建时间"
+                  active={sort === "createdAt"}
+                  direction={order}
+                  onClick={() => updateSort("createdAt")}
+                />
               </th>
               <th className="sticky top-0 z-20 whitespace-nowrap bg-muted px-4 py-3 font-medium">
-                使用时间
+                <SortHeader
+                  label="使用时间"
+                  active={sort === "usedAt"}
+                  direction={order}
+                  onClick={() => updateSort("usedAt")}
+                />
               </th>
               <th className="sticky top-0 z-20 w-36 bg-muted px-4 py-3 text-right font-medium">
                 操作
@@ -477,15 +551,15 @@ export function CardManagement({
             </tr>
           </thead>
           <tbody>
-            {loading && !list ? (
+            {!loaded ? (
               <tr>
                 <td className="h-80 text-center" colSpan={9}>
                   <LoaderCircle className="mr-2 inline size-4 animate-spin" />
                   正在读取卡密
                 </td>
               </tr>
-            ) : list?.items.length ? (
-              list.items.map((item) => (
+            ) : pageItems.length ? (
+              pageItems.map((item) => (
                 <tr
                   className={`cursor-pointer border-t transition-colors ${
                     selected.has(item.code)
@@ -629,7 +703,7 @@ export function CardManagement({
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
         <div className="flex flex-wrap items-center gap-3">
           <span>
-            共 {list?.total ?? 0} 张，第 {page} / {pageCount} 页
+            共 {total} 张，第 {page} / {pageCount} 页
           </span>
           <label className="flex items-center gap-2">
             每页
