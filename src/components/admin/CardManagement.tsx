@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -37,9 +37,9 @@ import {
 
 const pageSizeOptions = [10, 25, 50, 100, 500] as const;
 const pageSizeStorageKey = "mcsm-redeem-admin-page-size";
-  const maxRedeemDays = 106751;
-  const maxGenerateCount = 10000;
-  const maxImportCount = 10000;
+const maxRedeemDays = 106751;
+const maxGenerateCount = 10000;
+const maxImportCount = 10000;
 
 function initialPageSize() {
   try {
@@ -156,7 +156,7 @@ export function CardManagement({
   const [skuIDs, setSkuIDs] = useState<number[]>([]);
   const [search, setSearch] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
-  const [allCodes, setAllCodes] = useState<CodeRecord[]>([]);
+  const [items, setItems] = useState<CodeRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const [sort, setSort] = useState<"createdAt" | "usedAt">("createdAt");
@@ -195,26 +195,21 @@ export function CardManagement({
   useEffect(() => {
     const revision = ++requestRevision.current;
     setLoading(true);
-    const baseParams = new URLSearchParams({ limit: "500" });
-    if (states.length > 0) baseParams.set("status", states.join(","));
-    if (skuIDs.length > 0) baseParams.set("skuId", skuIDs.join(","));
-    if (appliedSearch) baseParams.set("query", appliedSearch);
+    const params = new URLSearchParams({
+      limit: String(pageSize),
+      offset: String((page - 1) * pageSize),
+    });
+    if (states.length > 0) params.set("status", states.join(","));
+    if (skuIDs.length > 0) params.set("skuId", skuIDs.join(","));
+    if (appliedSearch) params.set("query", appliedSearch);
+    if (sort !== "createdAt") params.set("sort", sort);
+    if (order !== "desc") params.set("order", order);
     void (async () => {
       try {
-        const first = await request<CodeList>(`/api/admin/codes?${baseParams}`);
-        const items = [...first.items];
-        while (items.length < first.total) {
-          const offsetParams = new URLSearchParams(baseParams);
-          offsetParams.set("offset", String(items.length));
-          const more = await request<CodeList>(
-            `/api/admin/codes?${offsetParams}`,
-          );
-          if (more.items.length === 0) break;
-          items.push(...more.items);
-        }
+        const result = await request<CodeList>(`/api/admin/codes?${params}`);
         if (revision !== requestRevision.current) return;
-        setAllCodes(items);
-        setTotal(first.total);
+        setItems(result.items);
+        setTotal(result.total);
         setLoaded(true);
         setSelected(new Set());
       } catch (error) {
@@ -227,7 +222,18 @@ export function CardManagement({
         if (revision === requestRevision.current) setLoading(false);
       }
     })();
-  }, [appliedSearch, notify, refreshRevision, request, skuIDs, states]);
+  }, [
+    appliedSearch,
+    notify,
+    order,
+    page,
+    pageSize,
+    refreshRevision,
+    request,
+    skuIDs,
+    sort,
+    states,
+  ]);
 
   function updateStates(value: CodeState[]) {
     setPage(1);
@@ -255,20 +261,7 @@ export function CardManagement({
     }
   }
 
-  const sortedItems = useMemo(() => {
-    const items = [...allCodes];
-    const direction = order === "asc" ? 1 : -1;
-    items.sort((a, b) => {
-      const av = sort === "createdAt" ? a.createdAt : (a.usedAt ?? -Infinity);
-      const bv = sort === "createdAt" ? b.createdAt : (b.usedAt ?? -Infinity);
-      if (av < bv) return -direction;
-      if (av > bv) return direction;
-      return a.code < b.code ? -1 : a.code > b.code ? 1 : 0;
-    });
-    return items;
-  }, [allCodes, order, sort]);
-
-  const pageItems = sortedItems.slice((page - 1) * pageSize, page * pageSize);
+  const pageItems = items;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const currentCodes = pageItems.map((item) => item.code);
 

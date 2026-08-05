@@ -1,30 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LoaderCircle, RefreshCw } from "lucide-react";
 import { Button } from "../ui/button";
-import type { AdminRequest, CodeList, CodeRecord, Notify } from "./types";
-
-function startOfDay(value: number) {
-  const date = new Date(value);
-  date.setHours(0, 0, 0, 0);
-  return date.getTime();
-}
-
-function startOfWeek(value: number) {
-  const date = new Date(startOfDay(value));
-  const day = date.getDay();
-  date.setDate(date.getDate() + (day === 0 ? -6 : 1 - day));
-  return date.getTime();
-}
-
-function startOfMonth(value: number) {
-  const date = new Date(startOfDay(value));
-  date.setDate(1);
-  return date.getTime();
-}
-
-function dayKey(date: Date) {
-  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-}
+import type { AdminRequest, Notify, Stats } from "./types";
 
 function DailyChart({ daily }: { daily: { label: string; count: number }[] }) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
@@ -213,7 +190,7 @@ export function StatsOverview({
   request: AdminRequest;
   notify: Notify;
 }) {
-  const [codes, setCodes] = useState<CodeRecord[]>([]);
+  const [stats, setStats] = useState<Stats>();
   const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [revision, setRevision] = useState(0);
@@ -238,19 +215,11 @@ export function StatsOverview({
     setLoading(true);
     void (async () => {
       try {
-        const first = await request<CodeList>("/api/admin/codes?limit=500");
-        const items = [...first.items];
-        while (items.length < first.total) {
-          const params = new URLSearchParams({
-            limit: "500",
-            offset: String(items.length),
-          });
-          const more = await request<CodeList>(`/api/admin/codes?${params}`);
-          if (more.items.length === 0) break;
-          items.push(...more.items);
-        }
+        const result = await request<Stats>(
+          `/api/admin/codes/stats?days=${days}`,
+        );
         if (rev !== requestRevision.current) return;
-        setCodes(items);
+        setStats(result);
         setLoaded(true);
       } catch (error) {
         if (rev === requestRevision.current) {
@@ -262,67 +231,26 @@ export function StatsOverview({
         if (rev === requestRevision.current) setLoading(false);
       }
     })();
-  }, [notify, request, revision]);
+  }, [days, notify, request, revision]);
 
-  const summary = useMemo(() => {
-    const now = Date.now();
-    const today = startOfDay(now);
-    const week = startOfWeek(now);
-    const month = startOfMonth(now);
-    let used = 0;
-    let unused = 0;
-    let disabled = 0;
-    let locked = 0;
-    let todayCount = 0;
-    let weekCount = 0;
-    let monthCount = 0;
-    for (const code of codes) {
-      if (code.status === 1) used += 1;
-      else if (code.status === 0) unused += 1;
-      else if (code.status === 2) disabled += 1;
-      else if (code.status === 3) locked += 1;
-      if (code.usedAt == null) continue;
-      if (code.usedAt >= today) todayCount += 1;
-      if (code.usedAt >= week) weekCount += 1;
-      if (code.usedAt >= month) monthCount += 1;
-    }
-    return {
-      total: codes.length,
-      used,
-      unused,
-      disabled,
-      locked,
-      todayCount,
-      weekCount,
-      monthCount,
-    };
-  }, [codes]);
+  const summary = stats
+    ? stats
+    : {
+        total: 0,
+        used: 0,
+        unused: 0,
+        disabled: 0,
+        locked: 0,
+        todayCount: 0,
+        weekCount: 0,
+        monthCount: 0,
+        daily: [],
+      };
 
-  const daily = useMemo(() => {
-    const base = new Date();
-    base.setHours(0, 0, 0, 0);
-    const counts = new Map<string, number>();
-    for (let offset = days - 1; offset >= 0; offset -= 1) {
-      const date = new Date(base);
-      date.setDate(base.getDate() - offset);
-      counts.set(dayKey(date), 0);
-    }
-    for (const code of codes) {
-      if (code.usedAt == null) continue;
-      const key = dayKey(new Date(code.usedAt));
-      if (counts.has(key)) counts.set(key, (counts.get(key) ?? 0) + 1);
-    }
-    const result: { label: string; count: number }[] = [];
-    for (let offset = days - 1; offset >= 0; offset -= 1) {
-      const date = new Date(base);
-      date.setDate(base.getDate() - offset);
-      result.push({
-        label: `${date.getMonth() + 1}/${date.getDate()}`,
-        count: counts.get(dayKey(date)) ?? 0,
-      });
-    }
-    return result;
-  }, [codes, days]);
+  const daily = (stats?.daily || []).map((item) => {
+    const parts = item.date.split("-").map(Number);
+    return { label: `${parts[1]}/${parts[2]}`, count: item.count };
+  });
 
   const items = [
     { label: "总卡密数量", value: summary.total },
@@ -363,7 +291,7 @@ export function StatsOverview({
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
         {items.map((item) => (
           <div className="rounded-xl border bg-card p-4" key={item.label}>
             <p className="text-sm text-muted-foreground">{item.label}</p>

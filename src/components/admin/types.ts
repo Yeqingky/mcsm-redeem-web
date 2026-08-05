@@ -68,6 +68,23 @@ export type CodeList = {
   offset: number;
 };
 
+export type DailyCount = {
+  date: string;
+  count: number;
+};
+
+export type Stats = {
+  total: number;
+  used: number;
+  unused: number;
+  disabled: number;
+  locked: number;
+  todayCount: number;
+  weekCount: number;
+  monthCount: number;
+  daily: DailyCount[];
+};
+
 export type CodeStatus = CodeRecord & {
   username: string;
   password: string;
