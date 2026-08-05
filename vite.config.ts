@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+const logoFallback = "https://list.yppp.net/d/cos/yeqing.jpeg";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, ".", "");
   const value = (key: string, fallback: string) => {
@@ -9,7 +10,19 @@ export default defineConfig(({ mode }) => {
   };
   return {
     envDir: ".",
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      {
+        name: "logo-env",
+        transformIndexHtml(html) {
+          return html.replaceAll(
+            "%VITE_LOGO_URL%",
+            JSON.stringify(value("VITE_LOGO_URL", logoFallback)),
+          );
+        },
+      },
+    ],
     define: {
       "import.meta.env.VITE_API_BASE_URL": JSON.stringify(
         value("VITE_API_BASE_URL", "http://localhost:8080"),
@@ -20,6 +33,9 @@ export default defineConfig(({ mode }) => {
       ),
       "import.meta.env.VITE_SITE_NAME": JSON.stringify(
         value("VITE_SITE_NAME", "夜轻面板兑换页"),
+      ),
+      "import.meta.env.VITE_LOGO_URL": JSON.stringify(
+        value("VITE_LOGO_URL", logoFallback),
       ),
       "import.meta.env.VITE_PANEL_URL": JSON.stringify(
         value("VITE_PANEL_URL", ""),

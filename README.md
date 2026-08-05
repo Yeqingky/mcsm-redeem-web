@@ -69,13 +69,14 @@ npm run dev
 cp .env.example .env
 ```
 
-| 变量                | 是否必填 | 说明                                             | 默认值或示例                |
-| ------------------- | -------- | ------------------------------------------------ | --------------------------- |
-| `VITE_API_BASE_URL` | 是       | 浏览器可访问的后端 API 基础地址，不要以 `/` 结尾 | `http://localhost:8080`     |
-| `VITE_CAP_URL`      | 是       | 浏览器可访问的 Cap 验证服务基础地址              | `https://cap.example.com`   |
-| `VITE_CAP_SITE_KEY` | 是       | Cap 的公开 Site Key                              | `your-site-key`             |
-| `VITE_SITE_NAME`    | 否       | 页面左上角名称和浏览器标签页标题                 | `夜轻面板兑换页`            |
-| `VITE_PANEL_URL`    | 是       | 兑换成功后引导用户访问的 MCSManager 地址         | `https://mcsm.example.com/` |
+| 变量                | 是否必填 | 说明                                             | 默认值或示例                              |
+| ------------------- | -------- | ------------------------------------------------ | ----------------------------------------- |
+| `VITE_API_BASE_URL` | 是       | 浏览器可访问的后端 API 基础地址，不要以 `/` 结尾 | `http://localhost:8080`                   |
+| `VITE_CAP_URL`      | 是       | 浏览器可访问的 Cap 验证服务基础地址              | `https://cap.example.com`                 |
+| `VITE_CAP_SITE_KEY` | 是       | Cap 的公开 Site Key                              | `your-site-key`                           |
+| `VITE_SITE_NAME`    | 否       | 页面左上角名称和浏览器标签页标题                 | `夜轻面板兑换页`                          |
+| `VITE_LOGO_URL`     | 否       | 页面左上角 Logo 图片地址，留空则不显示           | `https://list.yppp.net/d/cos/yeqing.jpeg` |
+| `VITE_PANEL_URL`    | 是       | 兑换成功后引导用户访问的 MCSManager 地址         | `https://mcsm.example.com/`               |
 
 所有以 `VITE_` 开头的变量都会在构建时写入前端资源，任何访问者都可以查看。请勿在这些变量中填写 Cap Secret、MCSManager API Key、管理员密码或其他私密凭据。修改变量后需重新运行 `npm run dev` 或重新构建部署。
 

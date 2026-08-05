@@ -3,6 +3,7 @@ import { toast } from "sonner";
 const api = String(import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
 export const siteName = import.meta.env.VITE_SITE_NAME || "夜轻面板兑换页";
+export const logoUrl = String(import.meta.env.VITE_LOGO_URL || "").trim();
 export const panelUrl = String(import.meta.env.VITE_PANEL_URL || "").trim();
 export const uuidCodePattern =
   "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";

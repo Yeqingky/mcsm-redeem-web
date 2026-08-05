@@ -3,7 +3,7 @@ import { Menu } from "lucide-react";
 import { AdminPanel } from "./components/admin/AdminPanel";
 import { RedeemPage } from "./components/RedeemPage";
 import { Toaster } from "./components/ui/sonner";
-import { notify, requestJSON, siteName } from "./lib/client";
+import { notify, requestJSON, siteName, logoUrl } from "./lib/client";
 
 document.title = siteName;
 
@@ -15,7 +15,7 @@ export default function App() {
     window.history.replaceState(null, "", "/");
   }
   return (
-    <>
+    <div className="flex min-h-screen flex-col">
       <header className={isAdmin ? "admin-header" : ""}>
         <div className="flex items-center gap-3">
           {isAdmin && (
@@ -29,17 +29,33 @@ export default function App() {
               <Menu className="size-5" />
             </button>
           )}
-          <a className="font-semibold" href="/">
+          <a className="flex items-center gap-2 font-semibold" href="/">
+            {logoUrl && (
+              <img
+                src={logoUrl}
+                alt="logo"
+                className="size-6 rounded-full object-cover"
+              />
+            )}
             {siteName}
           </a>
         </div>
-        {!isAdmin && (
+        {isAdmin ? (
+          <a
+            className="text-sm text-muted-foreground hover:underline"
+            href="https://github.com/Yeqingky/mcsm-redeem"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Github
+          </a>
+        ) : (
           <a className="text-sm text-muted-foreground" href="/admin">
             管理面板
           </a>
         )}
       </header>
-      <main className={isAdmin ? "admin-main" : ""}>
+      <main className={`flex-1 ${isAdmin ? "admin-main" : ""}`}>
         {isAdmin ? (
           <AdminPanel
             baseRequest={requestJSON}
@@ -48,10 +64,22 @@ export default function App() {
             onCloseSidebar={() => setSidebarOpen(false)}
           />
         ) : (
-          <RedeemPage />
+          <>
+            <div className="flex w-full flex-1 flex-col justify-center">
+              <RedeemPage />
+            </div>
+            <a
+              className="pb-1 text-center text-sm text-muted-foreground hover:underline"
+              href="https://github.com/Yeqingky/mcsm-redeem"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Github
+            </a>
+          </>
         )}
       </main>
       <Toaster />
-    </>
+    </div>
   );
 }
