@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -14,6 +15,7 @@
   --color-destructive: var(--destructive);
 }
 :root {
+  color-scheme: light;
   --background: #f6f7f9;
   --foreground: #18181b;
   --card: #fff;
@@ -26,6 +28,33 @@
   --input: #e4e4e7;
   --ring: #a1a1aa;
   --destructive: #dc2626;
+}
+.dark {
+  color-scheme: dark;
+  --background: #09090b;
+  --foreground: #fafafa;
+  --card: #131316;
+  --card-foreground: #fafafa;
+  --primary: #fafafa;
+  --primary-foreground: #18181b;
+  --muted: #1f1f23;
+  --muted-foreground: #a1a1aa;
+  --accent: #1f1f23;
+  --input: #27272a;
+  --ring: #52525b;
+  --destructive: #ef4444;
+  /* Cap 验证码暗色适配：checkmark/error-cross 是 SVG 图片，不覆盖，保留默认 */
+  --cap-background: #131316;
+  --cap-color: #fafafa;
+  --cap-border-color: #27272a;
+  --cap-checkbox-background: #1f1f23;
+  --cap-checkbox-border: 1px solid #52525b;
+  --cap-spinner-background-color: #1f1f23;
+  --cap-spinner-color: #fafafa;
+  --cap-troubleshoot-color: #a1a1aa;
+  --cap-focus-ring: #52525b;
+  --cap-invalid-border-color: #ef4444;
+  --cap-invalid-ring-color: rgba(239, 68, 68, 0.2);
 }
 * {
   border-color: var(--input);
@@ -155,4 +184,73 @@ main > * {
 }
 .refresh-spin {
   animation: refresh-spin 0.7s ease;
+}
+::view-transition-group(root) {
+  animation: none;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+/* 捕获新主题时禁用组件自身的颜色过渡，避免快照落在颜色中间态。 */
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: none !important;
+}
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 2147483646;
+}
+/* 扩散：新主题快照从点击点圆形展开 */
+html.theme-expanding::view-transition-new(root) {
+  animation: theme-reveal 0.5s ease-in-out both;
+}
+/* 收回：旧主题快照置顶圆形收缩，露出底层的新主题快照 */
+html.theme-collapsing::view-transition-old(root) {
+  z-index: 2147483646;
+  animation: theme-collapse 0.5s ease-in-out both;
+}
+html.theme-collapsing::view-transition-new(root) {
+  z-index: 1;
+}
+@keyframes theme-reveal {
+  from {
+    clip-path: circle(
+      0 at var(--theme-origin-x, 50%) var(--theme-origin-y, 50%)
+    );
+  }
+  to {
+    clip-path: circle(
+      var(--theme-radius, 100%) at var(--theme-origin-x, 50%)
+        var(--theme-origin-y, 50%)
+    );
+  }
+}
+@keyframes theme-collapse {
+  from {
+    clip-path: circle(
+      var(--theme-radius, 100%) at var(--theme-origin-x, 50%)
+        var(--theme-origin-y, 50%)
+    );
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  to {
+    clip-path: circle(
+      0 at var(--theme-origin-x, 50%) var(--theme-origin-y, 50%)
+    );
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-new(root),
+  ::view-transition-old(root) {
+    animation: none;
+  }
 }

@@ -56,6 +56,13 @@ function Field({
   );
 }
 
+// 每个排队任务粗略按 18 秒估算（MCSManager 创建用户与实例的多次 API 调用）。
+function estimateWait(position: number) {
+  const seconds = Math.max(1, Math.round((position - 1) * 18));
+  if (seconds < 60) return `${seconds} 秒`;
+  return `约 ${Math.round(seconds / 60)} 分钟`;
+}
+
 export function RedeemPage() {
   const [action, setAction] = useState<"provision" | "renew">("provision");
   const [submittedAction, setSubmittedAction] = useState<"provision" | "renew">(
@@ -78,7 +85,12 @@ export function RedeemPage() {
         if (cancelled) return;
         setTask(next);
         if (["queued", "processing"].includes(next.status)) {
-          timer = window.setTimeout(() => void poll(), 1500);
+          // 默认 1 秒轮询；排队任务较多时逐渐拉长间隔，上限 5 秒。
+          const interval =
+            next.waiting >= 5
+              ? Math.min(1000 + next.waiting * 500, 5000)
+              : 1000;
+          timer = window.setTimeout(() => void poll(), interval);
         }
       } catch (error) {
         if (!cancelled) {
@@ -97,12 +109,12 @@ export function RedeemPage() {
               id: "task-poll-error",
               description: message,
             });
-            timer = window.setTimeout(() => void poll(), 1500);
+            timer = window.setTimeout(() => void poll(), 1000);
           }
         }
       }
     };
-    timer = window.setTimeout(() => void poll(), 1500);
+    timer = window.setTimeout(() => void poll(), 1000);
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
@@ -246,6 +258,9 @@ export function RedeemPage() {
               {task.status === "queued" ? "排队中" : "正在处理"}
             </h3>
             {task.status === "queued" && <p>当前排队位置：{task.position}</p>}
+            {task.status === "queued" && (task.position ?? 0) >= 5 && (
+              <p>预计等待约 {estimateWait(task.position ?? 1)}</p>
+            )}
             <p className="text-muted-foreground">
               等待中的任务：{task.waiting}
             </p>
