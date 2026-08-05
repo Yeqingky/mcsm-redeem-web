@@ -24,8 +24,8 @@ export function MultiSelect<T extends string | number>({
         ? options.find((option) => option.value === value[0])?.label || label
         : `${label}：已选 ${value.length} 项`;
   return (
-    <details className="group relative">
-      <summary className="flex h-10 min-w-40 cursor-pointer list-none items-center justify-between gap-3 rounded-md border bg-background px-3 text-sm outline-none transition-[background-color,transform,filter] duration-100 hover:bg-accent active:translate-y-px active:scale-[0.98] active:brightness-90 focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none motion-reduce:active:translate-y-0 motion-reduce:active:scale-100 [&::-webkit-details-marker]:hidden">
+    <details className="group relative min-w-0 flex-1 md:min-w-40 md:flex-none">
+      <summary className="flex h-10 cursor-pointer list-none items-center justify-between gap-3 rounded-md border bg-background px-3 text-sm outline-none transition-[background-color,transform,filter] duration-100 hover:bg-accent active:translate-y-px active:scale-[0.98] active:brightness-90 focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none motion-reduce:active:translate-y-0 motion-reduce:active:scale-100 [&::-webkit-details-marker]:hidden">
         <span className="truncate">{text}</span>
         <ChevronDown className="size-4 shrink-0 transition-transform group-open:rotate-180" />
       </summary>

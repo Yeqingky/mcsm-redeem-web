@@ -1,5 +1,11 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { KeyRound, LogOut, Package, TicketCheck } from "lucide-react";
+import {
+  BarChart3,
+  KeyRound,
+  LogOut,
+  Package,
+  TicketCheck,
+} from "lucide-react";
 import { CapWidget, type CapHandle } from "../CapWidget";
 import { Button } from "../ui/button";
 import {
@@ -13,6 +19,7 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { CardManagement } from "./CardManagement";
 import { SkuManagement } from "./SkuManagement";
+import { StatsOverview } from "./StatsOverview";
 import type { AdminRequest, Notify, SKU } from "./types";
 
 const sidebarNavClass =
@@ -21,15 +28,19 @@ const sidebarNavClass =
 export function AdminPanel({
   baseRequest,
   notify,
+  sidebarOpen,
+  onCloseSidebar,
 }: {
   baseRequest: AdminRequest;
   notify: Notify;
+  sidebarOpen: boolean;
+  onCloseSidebar: () => void;
 }) {
   const [logged, setLogged] = useState(false);
   const [checking, setChecking] = useState(true);
   const [password, setPassword] = useState("");
   const [capToken, setCapToken] = useState("");
-  const [section, setSection] = useState<"codes" | "skus">("codes");
+  const [section, setSection] = useState<"stats" | "codes" | "skus">("stats");
   const [skus, setSkus] = useState<SKU[]>([]);
   const cap = useRef<CapHandle>(null);
 
@@ -93,6 +104,11 @@ export function AdminPanel({
     }
   }
 
+  function chooseSection(next: "stats" | "codes" | "skus") {
+    setSection(next);
+    onCloseSidebar();
+  }
+
   if (checking) {
     return (
       <div className="admin-login">
@@ -139,7 +155,18 @@ export function AdminPanel({
 
   return (
     <div className="admin-shell overflow-hidden rounded-xl border bg-card shadow-sm">
-      <aside className="admin-sidebar flex shrink-0 gap-2 border-b bg-muted/35 p-3 md:w-52 md:flex-col md:border-b-0 md:border-r">
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 top-16 z-40 bg-black/55 md:hidden"
+          aria-hidden="true"
+          onClick={onCloseSidebar}
+        />
+      )}
+      <aside
+        className={`fixed bottom-0 left-0 top-16 z-50 flex w-64 shrink-0 -translate-x-full flex-col gap-2 bg-card p-3 transition-transform duration-200 md:static md:w-52 md:translate-x-0 md:flex-col md:border-r md:border-b-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
         <div className="hidden px-3 pb-3 pt-2 md:block">
           <p className="font-semibold">管理面板</p>
           <p className="mt-1 text-xs text-muted-foreground">MCSM Redeem</p>
@@ -147,8 +174,17 @@ export function AdminPanel({
         <Button
           type="button"
           className={sidebarNavClass}
+          variant={section === "stats" ? "default" : "ghost"}
+          onClick={() => chooseSection("stats")}
+        >
+          <BarChart3 className="size-4" />
+          数据概况
+        </Button>
+        <Button
+          type="button"
+          className={sidebarNavClass}
           variant={section === "codes" ? "default" : "ghost"}
-          onClick={() => setSection("codes")}
+          onClick={() => chooseSection("codes")}
         >
           <TicketCheck className="size-4" />
           卡密管理
@@ -157,14 +193,14 @@ export function AdminPanel({
           type="button"
           className={sidebarNavClass}
           variant={section === "skus" ? "default" : "ghost"}
-          onClick={() => setSection("skus")}
+          onClick={() => chooseSection("skus")}
         >
           <Package className="size-4" />
           套餐管理
         </Button>
         <Button
           type="button"
-          className="ml-auto justify-start md:ml-0 md:mt-auto"
+          className="mt-auto justify-start"
           variant="ghost"
           onClick={() => void logout()}
         >
@@ -173,7 +209,9 @@ export function AdminPanel({
         </Button>
       </aside>
       <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-4 sm:p-6">
-        {section === "codes" ? (
+        {section === "stats" ? (
+          <StatsOverview request={request} notify={notify} />
+        ) : section === "codes" ? (
           <CardManagement request={request} notify={notify} skus={skus} />
         ) : (
           <SkuManagement

@@ -176,6 +176,7 @@ export function CardManagement({
   const [importing, setImporting] = useState(false);
   const [detail, setDetail] = useState<CodeStatus>();
   const [detailLoading, setDetailLoading] = useState(false);
+  const [refreshSpin, setRefreshSpin] = useState(0);
   const requestRevision = useRef(0);
 
   useEffect(() => {
@@ -407,7 +408,7 @@ export function CardManagement({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-5">
+    <div className="flex min-h-0 flex-col gap-5 md:h-full">
       <div>
         <h2 className="text-2xl font-semibold">卡密管理</h2>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -415,50 +416,38 @@ export function CardManagement({
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" onClick={() => setGenerateOpen(true)}>
-            <Plus className="size-4" />
-            生成卡密
-          </Button>
-          <Button
-            type="button"
-            onClick={() => setImportOpen(true)}
-            disabled={skus.length === 0}
-          >
-            <Upload className="size-4" />
-            导入卡密
-          </Button>
-        </div>
-        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
-          <Button
-            type="button"
-            variant="destructive"
-            disabled={!canDisable || changing.size > 0}
-            onClick={() => void changeCodes(selectedRows, 2)}
-          >
-            <Ban className="size-4" />
-            禁用所选
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={!canEnable || changing.size > 0}
-            onClick={() => void changeCodes(selectedRows, 0)}
-          >
-            <Power className="size-4" />
-            启用所选
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            title="刷新列表"
-            aria-label="刷新卡密列表"
-            onClick={() => setRefreshRevision((value) => value + 1)}
-          >
-            <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
-          </Button>
-        </div>
+      <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center md:gap-2">
+        <Button type="button" onClick={() => setGenerateOpen(true)}>
+          <Plus className="size-4" />
+          生成卡密
+        </Button>
+        <Button
+          type="button"
+          onClick={() => setImportOpen(true)}
+          disabled={skus.length === 0}
+        >
+          <Upload className="size-4" />
+          导入卡密
+        </Button>
+        <Button
+          type="button"
+          className="md:ml-auto"
+          variant="destructive"
+          disabled={!canDisable || changing.size > 0}
+          onClick={() => void changeCodes(selectedRows, 2)}
+        >
+          <Ban className="size-4" />
+          禁用所选
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={!canEnable || changing.size > 0}
+          onClick={() => void changeCodes(selectedRows, 0)}
+        >
+          <Power className="size-4" />
+          启用所选
+        </Button>
       </div>
 
       {skus.length === 0 && (
@@ -486,8 +475,12 @@ export function CardManagement({
           value={skuIDs}
           onChange={updateSKUs}
         />
-        <form className="flex min-w-60 flex-1 gap-2" onSubmit={submitSearch}>
+        <form
+          className="flex w-full min-w-0 flex-1 basis-full gap-2 md:w-auto md:basis-auto md:min-w-60"
+          onSubmit={submitSearch}
+        >
           <Input
+            className="min-w-0 flex-1"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="搜索卡密或 IP"
@@ -496,10 +489,27 @@ export function CardManagement({
           <Button type="submit" variant="outline" aria-label="搜索卡密">
             <Search className="size-4" />
           </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            className="refresh-button"
+            title="刷新列表"
+            aria-label="刷新卡密列表"
+            onClick={() => {
+              setRefreshSpin((value) => value + 1);
+              setRefreshRevision((value) => value + 1);
+            }}
+          >
+            <RefreshCw
+              key={refreshSpin}
+              className={`size-4 ${refreshSpin > 0 ? "refresh-spin" : ""}`}
+              onAnimationEnd={() => setRefreshSpin(0)}
+            />
+          </Button>
         </form>
       </div>
 
-      <ScrollArea className="min-h-48 flex-1 rounded-lg border">
+      <ScrollArea className="min-h-48 flex-none rounded-lg border md:flex-1">
         <table className="w-full min-w-[1080px] border-collapse text-left text-sm">
           <thead className="bg-muted">
             <tr>
@@ -507,7 +517,7 @@ export function CardManagement({
                 <SelectionCheckbox
                   checked={allSelected}
                   indeterminate={someSelected && !allSelected}
-                  disabled={loading || changing.size > 0}
+                  disabled={changing.size > 0}
                   label="全选当前页卡密"
                   onChange={(checked) =>
                     setSelected(checked ? new Set(currentCodes) : new Set())

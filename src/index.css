@@ -45,6 +45,9 @@ header {
   justify-content: space-between;
   padding: 0 max(24px, calc((100% - 760px) / 2));
 }
+header.admin-header {
+  padding: 0 max(24px, calc((100% - 1440px) / 2));
+}
 main {
   display: flex;
   min-height: calc(100vh - 64px);
@@ -133,9 +136,22 @@ main > * {
 }
 @media (max-width: 767px) {
   .admin-shell {
-    flex-direction: column;
+    height: auto;
   }
-  .admin-sidebar {
-    overflow-x: auto;
+}
+.refresh-button:active {
+  transform: none;
+  filter: none;
+  box-shadow: none;
+}
+@keyframes refresh-spin {
+  from {
+    transform: rotate(0deg);
   }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.refresh-spin {
+  animation: refresh-spin 0.7s ease;
 }
