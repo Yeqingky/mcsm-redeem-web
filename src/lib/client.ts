@@ -11,13 +11,23 @@ export function isUUIDCode(value: string) {
   return new RegExp(`^${uuidCodePattern}$`).test(value.trim());
 }
 
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 export async function requestJSON<T = unknown>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
   const response = await fetch(api + path, options);
   const result = response.status === 204 ? {} : await response.json();
-  if (!response.ok) throw Error(result.error || "请求失败");
+  if (!response.ok)
+    throw new ApiError(result.error || "请求失败", response.status);
   return result as T;
 }
 

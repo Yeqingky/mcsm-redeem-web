@@ -8,6 +8,7 @@ import {
   TicketCheck,
 } from "lucide-react";
 import { CapWidget, type CapHandle } from "../CapWidget";
+import { ApiError } from "../../lib/client";
 import { Button } from "../ui/button";
 import {
   Card,
@@ -40,6 +41,7 @@ export function AdminPanel({
 }) {
   const [logged, setLogged] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [password, setPassword] = useState("");
   const [capToken, setCapToken] = useState("");
   const [section, setSection] = useState<"stats" | "codes" | "skus" | "rate">(
@@ -70,10 +72,23 @@ export function AdminPanel({
   }, [request]);
 
   useEffect(() => {
-    loadSKUs()
-      .catch(() => setLogged(false))
-      .finally(() => setChecking(false));
+    retryLoad();
   }, [loadSKUs]);
+
+  function retryLoad() {
+    setChecking(true);
+    setLoadError("");
+    loadSKUs()
+      .catch((error) => {
+        const status = error instanceof ApiError ? error.status : 0;
+        if (status === 401) {
+          setLogged(false);
+        } else {
+          setLoadError((error as Error).message);
+        }
+      })
+      .finally(() => setChecking(false));
+  }
 
   async function login(event: FormEvent) {
     event.preventDefault();
@@ -83,8 +98,14 @@ export function AdminPanel({
         body: JSON.stringify({ password, capToken }),
       });
       setPassword("");
-      await loadSKUs();
-      notify("success", "登录成功");
+      try {
+        await loadSKUs();
+        notify("success", "登录成功");
+      } catch (error) {
+        notify("error", "读取套餐列表失败", {
+          description: (error as Error).message,
+        });
+      }
     } catch (error) {
       notify("error", "登录失败", {
         description: (error as Error).message,
@@ -113,12 +134,21 @@ export function AdminPanel({
     onCloseSidebar();
   }
 
-  if (checking) {
+  if (checking || loadError) {
     return (
       <div className="admin-login">
         <Card className="mx-auto w-full max-w-xl">
           <CardContent className="py-14 text-center text-muted-foreground">
-            正在检查管理会话…
+            {loadError ? (
+              <div className="grid justify-items-center gap-4">
+                <p>无法读取管理数据：{loadError}</p>
+                <Button type="button" onClick={retryLoad}>
+                  重试
+                </Button>
+              </div>
+            ) : (
+              "正在检查管理会话…"
+            )}
           </CardContent>
         </Card>
       </div>
