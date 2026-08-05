@@ -135,7 +135,7 @@ export function RedeemPage() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!isUUIDCode(code)) {
-      notify("error", "卡密格式无效", { description: "卡密必须为 UUID 格式" });
+      notify("error", "格式错误", { description: "请输入有效兑换码" });
       return;
     }
     setBusy(true);
@@ -211,7 +211,7 @@ export function RedeemPage() {
           </Button>
         </div>
         {(!task || task.status === "failed") && (
-          <form className="grid gap-5" onSubmit={submit}>
+          <form className="grid gap-5" onSubmit={submit} noValidate>
             <div
               className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${
                 action === "renew"
@@ -220,7 +220,7 @@ export function RedeemPage() {
               }`}
               aria-hidden={action !== "renew"}
             >
-              <div className="min-h-0 overflow-hidden">
+              <div className="min-h-0 overflow-hidden focus-within:overflow-visible">
                 <Field label="实例 ID">
                   <Input
                     value={instanceId}

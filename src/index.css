@@ -56,8 +56,10 @@
   --cap-invalid-border-color: #ef4444;
   --cap-invalid-ring-color: rgba(239, 68, 68, 0.2);
 }
-* {
-  border-color: var(--input);
+@layer base {
+  * {
+    border-color: var(--input);
+  }
 }
 body {
   margin: 0;

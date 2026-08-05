@@ -117,16 +117,13 @@ export function switchTheme(
     () => document.documentElement.classList.remove("theme-switching"),
     () => document.documentElement.classList.remove("theme-switching"),
   );
-  void transition.finished.then(
-    () => {
-      if (activeThemeTransition !== transition) return;
-      activeThemeTransition = null;
-      clearTransitionStyles();
-    },
-    () => {
-      if (activeThemeTransition !== transition) return;
-      activeThemeTransition = null;
-      clearTransitionStyles();
-    },
-  );
+  // finished 后清理；加超时兜底，动画被中断或环境异常（如无头浏览器
+  // finished 不触发）时也能恢复切换功能。
+  const finish = () => {
+    if (activeThemeTransition !== transition) return;
+    activeThemeTransition = null;
+    clearTransitionStyles();
+  };
+  void transition.finished.then(finish, finish);
+  setTimeout(finish, 1500);
 }
