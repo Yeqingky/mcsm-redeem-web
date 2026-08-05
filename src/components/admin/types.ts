@@ -93,6 +93,24 @@ export type Notify = (
   options?: { description?: string; id?: string },
 ) => void;
 
+export type RateLimitEntry = {
+  ip: string;
+  failures: number;
+  lastFailureAt: number;
+  banUntil: number;
+};
+
+export type RateLimitConfig = {
+  enabled: boolean;
+  loginWindowSeconds: number;
+  loginMax: number;
+  redeemWindowSeconds: number;
+  redeemMax: number;
+  banSeconds: number;
+  loginBlocked: RateLimitEntry[];
+  redeemBlocked: RateLimitEntry[];
+};
+
 export const codeStateLabels: Record<CodeState, string> = {
   0: "未使用",
   1: "已使用",

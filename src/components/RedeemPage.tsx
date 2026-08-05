@@ -82,11 +82,23 @@ export function RedeemPage() {
         }
       } catch (error) {
         if (!cancelled) {
-          notify("error", "查询任务失败", {
-            id: "task-poll-error",
-            description: (error as Error).message,
-          });
-          timer = window.setTimeout(() => void poll(), 1500);
+          const message = (error as Error).message;
+          if (message === "任务不存在或已过期") {
+            notify("error", "任务已过期，请重新兑换", {
+              id: "task-poll-error",
+            });
+            setTask((prev) =>
+              prev
+                ? { ...prev, status: "failed", error: "任务已过期，请重新兑换" }
+                : undefined,
+            );
+          } else {
+            notify("error", "查询任务失败", {
+              id: "task-poll-error",
+              description: message,
+            });
+            timer = window.setTimeout(() => void poll(), 1500);
+          }
         }
       }
     };

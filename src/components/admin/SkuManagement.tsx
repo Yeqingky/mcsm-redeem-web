@@ -319,12 +319,6 @@ export function SkuManagement({
       const images = await request<string[]>("/api/admin/docker-images");
       if (revision !== imageRequestRevision.current) return;
       setDockerImages(images);
-      if (currentImage && !images.includes(currentImage)) {
-        setDraft((value) => ({
-          ...value,
-          docker: { ...value.docker, image: "" },
-        }));
-      }
     } catch (error) {
       if (revision !== imageRequestRevision.current) return;
       setDockerImages([]);
@@ -457,9 +451,7 @@ export function SkuManagement({
   );
   const dockerImageReady =
     draft.processType !== "docker" ||
-    (!imagesLoading &&
-      !imagesError &&
-      dockerImages.includes(draft.docker.image));
+    (!imagesLoading && draft.docker.image !== "");
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-5">
@@ -681,55 +673,87 @@ export function SkuManagement({
 
                 {draft.processType === "docker" && (
                   <Section title="Docker 容器" open>
-                    <Field
-                      label="镜像"
-                      hint="只显示 MCSManager 节点中已经存在的 Docker 镜像。"
-                    >
+                  <Field
+                    label="镜像"
+                    hint="从节点已有镜像中选择，或直接输入镜像名称（MCSManager 启动时会自动拉取不存在的镜像）。"
+                  >
+                    {imagesError ? (
                       <Input
-                        value={imageSearch}
-                        placeholder="搜索镜像"
-                        disabled={imagesLoading || Boolean(imagesError)}
-                        onChange={(event) => setImageSearch(event.target.value)}
-                      />
-                      <select
-                        className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                        value={
-                          filteredDockerImages.includes(draft.docker.image)
-                            ? draft.docker.image
-                            : ""
-                        }
-                        disabled={
-                          imagesLoading ||
-                          Boolean(imagesError) ||
-                          filteredDockerImages.length === 0
-                        }
-                        onChange={(event) => {
-                          const image = event.target.value;
+                        className="h-10 w-full font-mono text-sm"
+                        value={draft.docker.image}
+                        placeholder="输入镜像名称，例如：tooldelta:dev"
+                        onChange={(event) =>
                           setDraft((value) => ({
                             ...value,
-                            docker: { ...value.docker, image },
-                          }));
-                        }}
+                            docker: {
+                              ...value.docker,
+                              image: event.target.value,
+                            },
+                          }))
+                        }
                         required
-                      >
-                        <option value="" disabled>
-                          {imagesLoading
-                            ? "正在读取节点镜像…"
-                            : imagesError
-                              ? imagesError
+                      />
+                    ) : (
+                      <>
+                        <Input
+                          value={imageSearch}
+                          placeholder="搜索镜像"
+                          disabled={imagesLoading}
+                          onChange={(event) =>
+                            setImageSearch(event.target.value)
+                          }
+                        />
+                        <select
+                          className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                          value={draft.docker.image}
+                          disabled={imagesLoading}
+                          onChange={(event) => {
+                            const image = event.target.value;
+                            setDraft((value) => ({
+                              ...value,
+                              docker: { ...value.docker, image },
+                            }));
+                          }}
+                          required
+                        >
+                          <option value="" disabled>
+                            {imagesLoading
+                              ? "正在读取节点镜像…"
                               : dockerImages.length === 0
                                 ? "节点暂无可用镜像"
                                 : filteredDockerImages.length === 0
                                   ? "没有匹配的镜像"
                                   : "请选择 Docker 镜像"}
-                        </option>
-                        {filteredDockerImages.map((image) => (
-                          <option value={image} key={image}>
-                            {image}
                           </option>
-                        ))}
-                      </select>
-                    </Field>
+                          {filteredDockerImages.map((image) => (
+                            <option value={image} key={image}>
+                              {image}
+                            </option>
+                          ))}
+                          {draft.docker.image &&
+                            !filteredDockerImages.includes(
+                              draft.docker.image,
+                            ) && (
+                              <option
+                                value={draft.docker.image}
+                                key={draft.docker.image}
+                              >
+                                {draft.docker.image}（节点上未找到）
+                              </option>
+                            )}
+                        </select>
+                      </>
+                    )}
+                    {(imagesError ||
+                      (draft.docker.image &&
+                        !dockerImages.includes(draft.docker.image))) && (
+                      <p className="text-xs text-amber-600">
+                        {imagesError
+                          ? "节点镜像列表读取失败，请确认镜像名称正确"
+                          : "节点上未找到该镜像，MCSManager 启动实例时会尝试自动拉取"}
+                      </p>
+                    )}
+                  </Field>
                     <TextField
                       label="容器工作目录"
                       value={draft.docker.workingDir}

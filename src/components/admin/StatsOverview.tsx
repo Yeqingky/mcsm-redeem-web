@@ -271,6 +271,7 @@ export function StatsOverview({
     const month = startOfMonth(now);
     let used = 0;
     let unused = 0;
+    let disabled = 0;
     let locked = 0;
     let todayCount = 0;
     let weekCount = 0;
@@ -278,7 +279,8 @@ export function StatsOverview({
     for (const code of codes) {
       if (code.status === 1) used += 1;
       else if (code.status === 0) unused += 1;
-      else if (code.status === 2 || code.status === 3) locked += 1;
+      else if (code.status === 2) disabled += 1;
+      else if (code.status === 3) locked += 1;
       if (code.usedAt == null) continue;
       if (code.usedAt >= today) todayCount += 1;
       if (code.usedAt >= week) weekCount += 1;
@@ -288,6 +290,7 @@ export function StatsOverview({
       total: codes.length,
       used,
       unused,
+      disabled,
       locked,
       todayCount,
       weekCount,
@@ -324,6 +327,7 @@ export function StatsOverview({
   const items = [
     { label: "总卡密数量", value: summary.total },
     { label: "已使用卡密数量", value: summary.used },
+    { label: "已禁用卡密数量", value: summary.disabled },
     { label: "已锁定卡密数量", value: summary.locked },
     { label: "未使用卡密数量", value: summary.unused },
     { label: "今日兑换数量", value: summary.todayCount },

@@ -4,6 +4,7 @@ import {
   KeyRound,
   LogOut,
   Package,
+  ShieldAlert,
   TicketCheck,
 } from "lucide-react";
 import { CapWidget, type CapHandle } from "../CapWidget";
@@ -18,6 +19,7 @@ import {
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { CardManagement } from "./CardManagement";
+import { RateLimitManagement } from "./RateLimitManagement";
 import { SkuManagement } from "./SkuManagement";
 import { StatsOverview } from "./StatsOverview";
 import type { AdminRequest, Notify, SKU } from "./types";
@@ -40,7 +42,9 @@ export function AdminPanel({
   const [checking, setChecking] = useState(true);
   const [password, setPassword] = useState("");
   const [capToken, setCapToken] = useState("");
-  const [section, setSection] = useState<"stats" | "codes" | "skus">("stats");
+  const [section, setSection] = useState<"stats" | "codes" | "skus" | "rate">(
+    "stats",
+  );
   const [skus, setSkus] = useState<SKU[]>([]);
   const cap = useRef<CapHandle>(null);
 
@@ -104,7 +108,7 @@ export function AdminPanel({
     }
   }
 
-  function chooseSection(next: "stats" | "codes" | "skus") {
+  function chooseSection(next: "stats" | "codes" | "skus" | "rate") {
     setSection(next);
     onCloseSidebar();
   }
@@ -200,6 +204,15 @@ export function AdminPanel({
         </Button>
         <Button
           type="button"
+          className={sidebarNavClass}
+          variant={section === "rate" ? "default" : "ghost"}
+          onClick={() => chooseSection("rate")}
+        >
+          <ShieldAlert className="size-4" />
+          限流管理
+        </Button>
+        <Button
+          type="button"
           className="mt-auto justify-start"
           variant="ghost"
           onClick={() => void logout()}
@@ -213,6 +226,8 @@ export function AdminPanel({
           <StatsOverview request={request} notify={notify} />
         ) : section === "codes" ? (
           <CardManagement request={request} notify={notify} skus={skus} />
+        ) : section === "rate" ? (
+          <RateLimitManagement request={request} notify={notify} />
         ) : (
           <SkuManagement
             request={request}

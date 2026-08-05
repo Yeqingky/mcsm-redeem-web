@@ -37,8 +37,9 @@ import {
 
 const pageSizeOptions = [10, 25, 50, 100, 500] as const;
 const pageSizeStorageKey = "mcsm-redeem-admin-page-size";
-const maxRedeemDays = 106751;
-const maxGenerateCount = 20000;
+  const maxRedeemDays = 106751;
+  const maxGenerateCount = 10000;
+  const maxImportCount = 10000;
 
 function initialPageSize() {
   try {
@@ -365,16 +366,23 @@ export function CardManagement({
       .split(/\r?\n/)
       .map((code) => code.trim())
       .filter(Boolean);
-    const invalidCodes = inputCodes.filter((code) => !isUUIDCode(code));
-    if (inputCodes.length === 0 || invalidCodes.length > 0) {
-      if (invalidCodes.length > 0) {
-        console.error("[卡密导入] UUID 格式无效", invalidCodes);
-      }
+    if (inputCodes.length === 0) {
       notify("error", "卡密格式无效", {
-        description:
-          invalidCodes.length > 0
-            ? `有 ${invalidCodes.length} 张卡密不是 UUID 格式，详情已输出到浏览器控制台`
-            : "请输入至少一张 UUID 格式的卡密",
+        description: "请输入至少一张 UUID 格式的卡密",
+      });
+      return;
+    }
+    if (inputCodes.length > maxImportCount) {
+      notify("error", "导入数量过多", {
+        description: `单次最多导入 ${maxImportCount} 张卡密，当前 ${inputCodes.length} 张`,
+      });
+      return;
+    }
+    const invalidCodes = inputCodes.filter((code) => !isUUIDCode(code));
+    if (invalidCodes.length > 0) {
+      console.error("[卡密导入] UUID 格式无效", invalidCodes);
+      notify("error", "卡密格式无效", {
+        description: `有 ${invalidCodes.length} 张卡密不是 UUID 格式，详情已输出到浏览器控制台`,
       });
       return;
     }
