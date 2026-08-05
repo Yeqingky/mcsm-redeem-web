@@ -1,12 +1,53 @@
+> 配套后端仓库：<https://github.com/Yeqingky/mcsm-redeem>
+
 <p align="center">
   <strong><span style="color: red;">⚠️ 警告：此项目完全由 AI 开发，请不要用于生产环境。</span></strong>
 </p>
 
-# MCSManager 卡密兑换系统
+# MCSManager 卡密兑换系统（前端）
 
-MCSManager 卡密兑换系统的独立 React 前端，使用 React 19、TypeScript、Vite、shadcn/ui、Tailwind CSS 与 Cap Widget。
+## 技术栈
 
-右上角入口为“管理面板”。登录后左侧提供卡密管理和套餐管理导航：卡密管理使用固定高度分页表格，顶部支持状态与套餐多选筛选（不选择表示全部）、本地生成 UUID 卡密、卡密搜索、导入和批量启用/禁用；表格支持按创建时间或使用时间排序，排序基于全部筛选结果而非当前页。套餐管理可以创建、编辑或删除套餐，并为每个套餐分别配置 MCSManager 实例参数。Docker 镜像支持搜索，并从目标节点已有镜像中选择。卡密使用 UUID 格式，有效天数在导入时独立填写，不属于套餐。兑换成功后的结果默认可在 10 分钟内凭任务 ID 重复查询。
+- **框架**：React 19 + TypeScript（严格模式）
+- **构建**：Vite 6
+- **样式**：Tailwind CSS 4 + shadcn/ui 风格组件（基于 Radix UI）
+- **图表**：手写 SVG 折线图（无图表库依赖）
+- **验证码**：`cap-widget` 组件
+- **通知**：sonner（右下角 Toast）
+- **部署**：Cloudflare Pages / EdgeOne Pages 静态托管
+
+## 简介
+
+MCSManager 卡密兑换系统的独立 React 前端，与后端仓库 `mcsm-redeem` 配套。前后端分离：前端是纯静态 SPA，真正的鉴权、业务逻辑与数据校验全部在后端。
+
+<details>
+<summary>界面截图（点击展开）</summary>
+
+![界面截图 1](https://cdn.nodeimage.com/i/BFBtyr8fbrFR2KQYCwKtpQhH9lHqMWCf.webp)
+
+![界面截图 2](https://cdn.nodeimage.com/i/do70SynnkJxI5IGzV5s6Q9955n0Cl6YP.webp)
+
+![界面截图 3](https://cdn.nodeimage.com/i/6rl6WpASbFIT3WysIqSPof6VRP8PL2uH.webp)
+
+![界面截图 4](https://cdn.nodeimage.com/i/p9cYZDHoZ2H4pLWO1ntQM0ywEhNyWe4K.webp)
+
+![界面截图 5](https://cdn.nodeimage.com/i/G9KaBzzTThC0Ax1Ah4r8FmLNEizptXw9.webp)
+
+![界面截图 6](https://cdn.nodeimage.com/i/mFykEbN0DGmhBF28R7YsZlQxTME1Zo9v.webp)
+
+</details>
+
+页面结构：
+
+- `/`：卡密兑换页——用卡密开通新实例，或用"卡密 + 32 位十六进制实例 ID"续费；兑换成功展示实例 ID、用户名、密码和到期时间（密码只显示一次）。
+- `/admin`：管理面板——登录后包含四个导航：数据概况、卡密管理、套餐管理、限流管理。其他路径自动回退到 `/`。
+
+管理面板功能：
+
+- **数据概况**：总卡密数量、已使用/未使用/已禁用/已锁定数量、今日/本周/本月兑换量，以及最近 30 天（移动端 7 天）兑换量折线图。数据全部由后端 `GET /api/admin/codes/stats` 计算返回。
+- **卡密管理**：固定高度分页表格（表格内部独立滚动），顶部支持状态与套餐多选筛选、本地生成 UUID 卡密（单次最多 1 万张）、搜索（卡密或 IP）、批量导入（单次最多 1 万张）和批量启用/禁用；支持按创建时间或使用时间排序，排序与分页由服务端完成。
+- **套餐管理**：创建、编辑、复制、删除套餐，为每个套餐配置 MCSManager 实例参数；Docker 镜像支持搜索并从目标节点已有镜像中选择，节点不可用时可手动输入镜像名称。
+- **限流管理**：开启/关闭限流（开关），配置登录/兑换的失败统计窗口与上限、封禁时长，查看被封禁 IP 列表（含封禁截止时间）并解除封禁。
 
 ## 本地开发
 
@@ -37,6 +78,10 @@ cp .env.example .env
 | `VITE_PANEL_URL`    | 是       | 兑换成功后引导用户访问的 MCSManager 地址         | `https://mcsm.example.com/` |
 
 所有以 `VITE_` 开头的变量都会在构建时写入前端资源，任何访问者都可以查看。请勿在这些变量中填写 Cap Secret、MCSManager API Key、管理员密码或其他私密凭据。修改变量后需重新运行 `npm run dev` 或重新构建部署。
+
+## 鉴权方式
+
+管理面板不保存任何本地令牌：登录时提交密码与 Cap token，后端校验通过后下发 `HttpOnly` Cookie（`redeem_admin`），后续所有管理请求通过 `credentials: "include"` 携带 Cookie，由后端会话校验；401 时前端回到登录表单。
 
 ## 构建
 
