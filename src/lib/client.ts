@@ -12,6 +12,25 @@ export function isUUIDCode(value: string) {
   return new RegExp(`^${uuidCodePattern}$`).test(value.trim());
 }
 
+export type CaptchaConfig = {
+  provider: string | null;
+  url: string;
+  siteKey: string;
+};
+
+let captchaConfigPromise: Promise<CaptchaConfig> | undefined;
+
+// 人机验证配置由后端公开端点下发，前端不保存任何 VITE_CAPTCHA_* 环境变量。
+export function loadCaptchaConfig(): Promise<CaptchaConfig> {
+  captchaConfigPromise ??= requestJSON<CaptchaConfig>(
+    "/api/captcha/config",
+  ).catch((error) => {
+    captchaConfigPromise = undefined;
+    throw error;
+  });
+  return captchaConfigPromise;
+}
+
 export class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) {

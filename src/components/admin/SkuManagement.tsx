@@ -12,6 +12,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { ScrollArea, ScrollBar } from "../ui/scroll-area";
+import { Select } from "../ui/select";
 import { Textarea } from "../ui/textarea";
 import {
   defaultSKU,
@@ -222,22 +223,7 @@ function SelectField<T extends string | number>({
 }) {
   return (
     <Field label={label} hint={hint}>
-      <select
-        className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-        value={value}
-        onChange={(event) => {
-          const option = options.find(
-            (item) => String(item.value) === event.target.value,
-          );
-          if (option) onChange(option.value);
-        }}
-      >
-        {options.map((option) => (
-          <option value={option.value} key={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      <Select value={value} options={options} onChange={onChange} />
     </Field>
   );
 }
@@ -673,87 +659,82 @@ export function SkuManagement({
 
                 {draft.processType === "docker" && (
                   <Section title="Docker 容器" open>
-                  <Field
-                    label="镜像"
-                    hint="从节点已有镜像中选择，或直接输入镜像名称（MCSManager 启动时会自动拉取不存在的镜像）。"
-                  >
-                    {imagesError ? (
-                      <Input
-                        className="h-10 w-full font-mono text-sm"
-                        value={draft.docker.image}
-                        placeholder="输入镜像名称，例如：tooldelta:dev"
-                        onChange={(event) =>
-                          setDraft((value) => ({
-                            ...value,
-                            docker: {
-                              ...value.docker,
-                              image: event.target.value,
-                            },
-                          }))
-                        }
-                        required
-                      />
-                    ) : (
-                      <>
+                    <Field
+                      label="镜像"
+                      hint="从节点已有镜像中选择，或直接输入镜像名称（MCSManager 启动时会自动拉取不存在的镜像）。"
+                    >
+                      {imagesError ? (
                         <Input
-                          value={imageSearch}
-                          placeholder="搜索镜像"
-                          disabled={imagesLoading}
-                          onChange={(event) =>
-                            setImageSearch(event.target.value)
-                          }
-                        />
-                        <select
-                          className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                          className="h-10 w-full font-mono text-sm"
                           value={draft.docker.image}
-                          disabled={imagesLoading}
-                          onChange={(event) => {
-                            const image = event.target.value;
+                          placeholder="输入镜像名称，例如：tooldelta:dev"
+                          onChange={(event) =>
                             setDraft((value) => ({
                               ...value,
-                              docker: { ...value.docker, image },
-                            }));
-                          }}
+                              docker: {
+                                ...value.docker,
+                                image: event.target.value,
+                              },
+                            }))
+                          }
                           required
-                        >
-                          <option value="" disabled>
-                            {imagesLoading
-                              ? "正在读取节点镜像…"
-                              : dockerImages.length === 0
-                                ? "节点暂无可用镜像"
-                                : filteredDockerImages.length === 0
-                                  ? "没有匹配的镜像"
-                                  : "请选择 Docker 镜像"}
-                          </option>
-                          {filteredDockerImages.map((image) => (
-                            <option value={image} key={image}>
-                              {image}
-                            </option>
-                          ))}
-                          {draft.docker.image &&
-                            !filteredDockerImages.includes(
-                              draft.docker.image,
-                            ) && (
-                              <option
-                                value={draft.docker.image}
-                                key={draft.docker.image}
-                              >
-                                {draft.docker.image}（节点上未找到）
-                              </option>
-                            )}
-                        </select>
-                      </>
-                    )}
-                    {(imagesError ||
-                      (draft.docker.image &&
-                        !dockerImages.includes(draft.docker.image))) && (
-                      <p className="text-xs text-amber-600">
-                        {imagesError
-                          ? "节点镜像列表读取失败，请确认镜像名称正确"
-                          : "节点上未找到该镜像，MCSManager 启动实例时会尝试自动拉取"}
-                      </p>
-                    )}
-                  </Field>
+                        />
+                      ) : (
+                        <>
+                          <Input
+                            value={imageSearch}
+                            placeholder="搜索镜像"
+                            disabled={imagesLoading}
+                            onChange={(event) =>
+                              setImageSearch(event.target.value)
+                            }
+                          />
+                          <Select
+                            value={draft.docker.image}
+                            disabled={imagesLoading}
+                            placeholder={
+                              imagesLoading
+                                ? "正在读取节点镜像…"
+                                : dockerImages.length === 0
+                                  ? "节点暂无可用镜像"
+                                  : filteredDockerImages.length === 0
+                                    ? "没有匹配的镜像"
+                                    : "请选择 Docker 镜像"
+                            }
+                            options={[
+                              ...filteredDockerImages.map((image) => ({
+                                value: image,
+                                label: image,
+                              })),
+                              ...(draft.docker.image &&
+                              !filteredDockerImages.includes(draft.docker.image)
+                                ? [
+                                    {
+                                      value: draft.docker.image,
+                                      label: `${draft.docker.image}（节点上未找到）`,
+                                    },
+                                  ]
+                                : []),
+                            ]}
+                            onChange={(image) => {
+                              setDraft((value) => ({
+                                ...value,
+                                docker: { ...value.docker, image },
+                              }));
+                            }}
+                          />
+                        </>
+                      )}
+                      {(imagesError ||
+                        (draft.docker.image &&
+                          !dockerImages.includes(draft.docker.image))) && (
+                        <p className="text-xs text-amber-600">
+                          {imagesError
+                            ? "节点镜像列表读取失败，请确认镜像名称正确"
+                            : "节点上未找到该镜像，MCSManager 启动实例时会尝试自动拉取"}
+                        </p>
+                      )}
+                    </Field>
                     <TextField
                       label="容器工作目录"
                       value={draft.docker.workingDir}

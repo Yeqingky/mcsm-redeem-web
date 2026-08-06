@@ -12,7 +12,7 @@
 - **构建**：Vite 6
 - **样式**：Tailwind CSS 4 + shadcn/ui 风格组件（基于 Radix UI）
 - **图表**：手写 SVG 折线图（无图表库依赖）
-- **验证码**：`cap-widget` 组件
+- **验证码**：人机验证组件（支持 Cap `cap-widget`、Cloudflare Turnstile、hCaptcha，未配置时禁用）
 - **通知**：sonner（右下角 Toast）
 - **部署**：Cloudflare Pages / EdgeOne Pages 静态托管
 
@@ -40,7 +40,7 @@ MCSManager 卡密兑换系统的独立 React 前端，与后端仓库 `mcsm-rede
 页面结构：
 
 - `/`：卡密兑换页——用卡密开通新实例，或用"卡密 + 32 位十六进制实例 ID"续费；兑换成功展示实例 ID、用户名、密码和到期时间（密码只显示一次）。任务轮询默认 1 秒，排队任务较多时自动拉长间隔（上限 5 秒），排队位置 5 以上时显示预计等待时间。
-- `/admin`：管理面板——登录后包含四个导航：数据概况、卡密管理、套餐管理、限流管理。其他路径自动回退到 `/`。
+- `/admin`：管理面板——登录后包含四个导航：数据概况、卡密管理、套餐管理、系统设置。其他路径自动回退到 `/`。
 
 页面右上角提供暗色/亮色模式切换，选择会持久化到本地存储，未选择时跟随系统偏好。
 
@@ -49,7 +49,7 @@ MCSManager 卡密兑换系统的独立 React 前端，与后端仓库 `mcsm-rede
 - **数据概况**：总卡密数量、已使用/未使用/已禁用/已锁定数量、今日/本周/本月兑换量，以及最近 30 天（移动端 7 天）兑换量折线图。数据全部由后端 `GET /api/admin/codes/stats` 计算返回。
 - **卡密管理**：固定高度分页表格（表格内部独立滚动），顶部支持状态与套餐多选筛选、本地生成 UUID 卡密（单次最多 1 万张）、搜索（卡密或 IP）、批量导入（单次最多 1 万张）和批量启用/禁用；支持按创建时间或使用时间排序，排序与分页由服务端完成。
 - **套餐管理**：创建、编辑、复制、删除套餐，为每个套餐配置 MCSManager 实例参数；Docker 镜像支持搜索并从目标节点已有镜像中选择，节点不可用时可手动输入镜像名称。
-- **限流管理**：开启/关闭限流（开关），配置登录/兑换的失败统计窗口与上限、封禁时长，查看被封禁 IP 列表（含封禁截止时间）并解除封禁。
+- **系统设置**：顶部横向分页切换"验证码"与"限流管理"。验证码页配置人机验证提供商（不启用/Cap/Turnstile/hCaptcha）、服务地址、站点标识与服务端密钥，配置保存在后端数据库；限流页开启/关闭限流（开关），配置登录/兑换的失败统计窗口与上限、封禁时长，查看被封禁 IP 列表（含封禁截止时间）并解除封禁。
 
 ## 本地开发
 
@@ -59,7 +59,7 @@ npm ci
 npm run dev
 ```
 
-默认访问 `http://localhost:5173`。请在 `.env` 中设置后端 API、Cap 地址和公开 Site Key；不要将 Cap Secret、MCSManager API Key 或管理员密码放入本仓库。
+默认访问 `http://localhost:5173`。请在 `.env` 中设置后端 API 地址等变量；人机验证配置由后端 `GET /api/captcha/config` 下发，前端不再配置验证相关环境变量。不要将人机验证 Secret、MCSManager API Key 或管理员密码放入本仓库。
 
 ## 环境变量
 
@@ -74,17 +74,17 @@ cp .env.example .env
 | 变量                | 是否必填 | 说明                                             | 默认值或示例                              |
 | ------------------- | -------- | ------------------------------------------------ | ----------------------------------------- |
 | `VITE_API_BASE_URL` | 是       | 浏览器可访问的后端 API 基础地址，不要以 `/` 结尾 | `http://localhost:8080`                   |
-| `VITE_CAP_URL`      | 是       | 浏览器可访问的 Cap 验证服务基础地址              | `https://cap.example.com`                 |
-| `VITE_CAP_SITE_KEY` | 是       | Cap 的公开 Site Key                              | `your-site-key`                           |
 | `VITE_SITE_NAME`    | 否       | 页面左上角名称和浏览器标签页标题                 | `夜轻面板兑换页`                          |
 | `VITE_LOGO_URL`     | 否       | 页面左上角 Logo 图片地址，留空则不显示           | `https://list.yppp.net/d/cos/yeqing.jpeg` |
 | `VITE_PANEL_URL`    | 是       | 兑换成功后引导用户访问的 MCSManager 地址         | `https://mcsm.example.com/`               |
 
-所有以 `VITE_` 开头的变量都会在构建时写入前端资源，任何访问者都可以查看。请勿在这些变量中填写 Cap Secret、MCSManager API Key、管理员密码或其他私密凭据。修改变量后需重新运行 `npm run dev` 或重新构建部署。
+人机验证（提供商、服务地址、公开 Site Key）不通过任何环境变量配置：配置保存在后端数据库，由管理面板"系统设置 → 验证码"维护；前端启动时请求后端公开端点 `GET /api/captcha/config` 获取，`provider` 为 `null` 时不渲染验证组件、提交不受 token 限制。
+
+所有以 `VITE_` 开头的变量都会在构建时写入前端资源，任何访问者都可以查看。请勿在这些变量中填写人机验证 Secret、MCSManager API Key、管理员密码或其他私密凭据。修改变量后需重新运行 `npm run dev` 或重新构建部署。
 
 ## 鉴权方式
 
-管理面板不保存任何本地令牌：登录时提交密码与 Cap token，后端校验通过后下发 `HttpOnly` Cookie（`redeem_admin`），后续所有管理请求通过 `credentials: "include"` 携带 Cookie，由后端会话校验；401 时前端回到登录表单。
+管理面板不保存任何本地令牌：登录时提交密码与人机验证 token（启用时），后端校验通过后下发 `HttpOnly` Cookie（`redeem_admin`），后续所有管理请求通过 `credentials: "include"` 携带 Cookie，由后端会话校验；401 时前端回到登录表单。
 
 ## 构建
 
@@ -106,7 +106,7 @@ npm run build
 - 输出目录：`dist`
 - 根目录：仓库根目录
 
-在平台的环境变量设置中配置 `VITE_API_BASE_URL`、`VITE_CAP_URL`、`VITE_CAP_SITE_KEY` 和 `VITE_SITE_NAME`。这是 React 单页应用，需将未知路径回退到 `/index.html`，避免直接访问子路由时返回 404。
+在平台的环境变量设置中配置 `VITE_API_BASE_URL` 和 `VITE_SITE_NAME`。这是 React 单页应用，需将未知路径回退到 `/index.html`，避免直接访问子路由时返回 404。
 
 ## 许可证
 

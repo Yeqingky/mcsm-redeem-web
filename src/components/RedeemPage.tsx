@@ -8,12 +8,14 @@ import {
 import { CheckCircle2, Clock3, LoaderCircle } from "lucide-react";
 import {
   isUUIDCode,
+  loadCaptchaConfig,
   panelUrl,
   notify,
   requestJSON,
+  type CaptchaConfig,
   uuidCodePattern,
 } from "../lib/client";
-import { CapWidget, type CapHandle } from "./CapWidget";
+import { CaptchaWidget, type CaptchaHandle } from "./captcha/CaptchaWidget";
 import { Button } from "./ui/button";
 import {
   Card,
@@ -71,9 +73,26 @@ export function RedeemPage() {
   const [code, setCode] = useState("");
   const [instanceId, setInstanceId] = useState("");
   const [capToken, setCapToken] = useState("");
+  const [captchaConfig, setCaptchaConfig] = useState<CaptchaConfig>();
   const [task, setTask] = useState<Task>();
   const [busy, setBusy] = useState(false);
-  const cap = useRef<CapHandle>(null);
+  const cap = useRef<CaptchaHandle>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadCaptchaConfig()
+      .then((config) => {
+        if (!cancelled) setCaptchaConfig(config);
+      })
+      .catch(() => {
+        if (!cancelled)
+          setCaptchaConfig({ provider: null, url: "", siteKey: "" });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const captchaEnabled = Boolean(captchaConfig?.provider);
 
   useEffect(() => {
     if (!task?.id || !["queued", "processing"].includes(task.status)) return;
@@ -148,7 +167,7 @@ export function RedeemPage() {
           action,
           code,
           instanceId: action === "renew" ? instanceId : "",
-          capToken,
+          captchaToken: capToken,
         }),
       });
       setTask(result);
@@ -244,8 +263,16 @@ export function RedeemPage() {
                 required
               />
             </Field>
-            <CapWidget ref={cap} onSolve={setCapToken} />
-            <Button disabled={busy || !capToken}>
+            {captchaConfig && (
+              <CaptchaWidget
+                ref={cap}
+                config={captchaConfig}
+                onSolve={setCapToken}
+              />
+            )}
+            <Button
+              disabled={busy || !captchaConfig || (captchaEnabled && !capToken)}
+            >
               {busy && <LoaderCircle className="size-4 animate-spin" />}
               提交兑换
             </Button>

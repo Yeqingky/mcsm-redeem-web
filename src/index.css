@@ -67,6 +67,22 @@ body {
   color: var(--foreground);
   font-family: Inter, "Noto Sans SC", system-ui, sans-serif;
 }
+/* 密码框掩码圆点默认字距偏大，收紧后接近普通文本宽度；占位符文字不受影响 */
+input[type="password"] {
+  letter-spacing: -2px;
+}
+input[type="password"]::placeholder {
+  letter-spacing: normal;
+}
+/* 密钥输入使用 CSS 掩码而非密码框，避免触发浏览器密码保存提示；
+   仅 WebKit/Blink 支持，不支持时由组件退回 type="password"。 */
+.masked-password {
+  -webkit-text-security: disc;
+  letter-spacing: -2px;
+}
+.masked-password::placeholder {
+  letter-spacing: normal;
+}
 header {
   height: 64px;
   background: var(--card);

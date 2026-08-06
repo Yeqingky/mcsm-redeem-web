@@ -20,6 +20,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { ScrollArea, ScrollBar } from "../ui/scroll-area";
+import { Select } from "../ui/select";
 import { Textarea } from "../ui/textarea";
 import { isUUIDCode } from "../../lib/client";
 import { MultiSelect } from "./MultiSelect";
@@ -718,21 +719,19 @@ export function CardManagement({
           </span>
           <label className="flex items-center gap-2">
             每页
-            <select
-              className="h-9 rounded-md border bg-background px-2 text-sm text-foreground outline-none transition-[background-color,transform] duration-100 focus:ring-2 focus:ring-ring active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100"
+            <Select
+              className="w-20"
               value={pageSize}
-              aria-label="每页显示卡密数量"
-              onChange={(event) => {
-                setPageSize(Number(event.target.value));
+              options={pageSizeOptions.map((size) => ({
+                value: size,
+                label: String(size),
+              }))}
+              ariaLabel="每页显示卡密数量"
+              onChange={(size) => {
+                setPageSize(size);
                 setPage(1);
               }}
-            >
-              {pageSizeOptions.map((size) => (
-                <option value={size} key={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
+            />
             张
           </label>
         </div>
@@ -865,21 +864,16 @@ export function CardManagement({
             <div className="grid gap-5">
               <div className="grid gap-2">
                 <Label htmlFor="import-sku">套餐</Label>
-                <select
+                <Select
                   id="import-sku"
-                  className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
                   value={importSkuID}
-                  onChange={(event) =>
-                    setImportSkuID(Number(event.target.value))
-                  }
-                  required
-                >
-                  {skus.map((sku) => (
-                    <option value={sku.id} key={sku.id}>
-                      {sku.alias}({sku.id})
-                    </option>
-                  ))}
-                </select>
+                  options={skus.map((sku) => ({
+                    value: sku.id,
+                    label: `${sku.alias}(${sku.id})`,
+                  }))}
+                  placeholder="选择套餐"
+                  onChange={(skuID) => setImportSkuID(skuID)}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="import-days">有效天数</Label>

@@ -4,11 +4,15 @@ import {
   KeyRound,
   LogOut,
   Package,
-  ShieldAlert,
+  Settings,
   TicketCheck,
 } from "lucide-react";
-import { CapWidget, type CapHandle } from "../CapWidget";
-import { ApiError } from "../../lib/client";
+import { CaptchaWidget, type CaptchaHandle } from "../captcha/CaptchaWidget";
+import {
+  ApiError,
+  loadCaptchaConfig,
+  type CaptchaConfig,
+} from "../../lib/client";
 import { Button } from "../ui/button";
 import {
   Card,
@@ -20,7 +24,7 @@ import {
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { CardManagement } from "./CardManagement";
-import { RateLimitManagement } from "./RateLimitManagement";
+import { SettingsPanel } from "./SettingsPanel";
 import { SkuManagement } from "./SkuManagement";
 import { StatsOverview } from "./StatsOverview";
 import type { AdminRequest, Notify, SKU } from "./types";
@@ -44,11 +48,29 @@ export function AdminPanel({
   const [loadError, setLoadError] = useState("");
   const [password, setPassword] = useState("");
   const [capToken, setCapToken] = useState("");
-  const [section, setSection] = useState<"stats" | "codes" | "skus" | "rate">(
-    "stats",
-  );
+  const [captchaConfig, setCaptchaConfig] = useState<CaptchaConfig>();
+  const [section, setSection] = useState<
+    "stats" | "codes" | "skus" | "settings"
+  >("stats");
   const [skus, setSkus] = useState<SKU[]>([]);
-  const cap = useRef<CapHandle>(null);
+  const cap = useRef<CaptchaHandle>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadCaptchaConfig()
+      .then((config) => {
+        if (!cancelled) setCaptchaConfig(config);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCaptchaConfig({ provider: null, url: "", siteKey: "" });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const captchaEnabled = Boolean(captchaConfig?.provider);
 
   const request: AdminRequest = useCallback(
     (path, options = {}) => {
@@ -95,7 +117,7 @@ export function AdminPanel({
     try {
       await request("/api/admin/login", {
         method: "POST",
-        body: JSON.stringify({ password, capToken }),
+        body: JSON.stringify({ password, captchaToken: capToken }),
       });
       setPassword("");
       try {
@@ -129,7 +151,7 @@ export function AdminPanel({
     }
   }
 
-  function chooseSection(next: "stats" | "codes" | "skus" | "rate") {
+  function chooseSection(next: "stats" | "codes" | "skus" | "settings") {
     setSection(next);
     onCloseSidebar();
   }
@@ -175,8 +197,16 @@ export function AdminPanel({
                   required
                 />
               </div>
-              <CapWidget ref={cap} onSolve={setCapToken} />
-              <Button disabled={!capToken}>
+              {captchaConfig && (
+                <CaptchaWidget
+                  ref={cap}
+                  config={captchaConfig}
+                  onSolve={setCapToken}
+                />
+              )}
+              <Button
+                disabled={!captchaConfig || (captchaEnabled && !capToken)}
+              >
                 <KeyRound className="size-4" />
                 登录
               </Button>
@@ -235,11 +265,11 @@ export function AdminPanel({
         <Button
           type="button"
           className={sidebarNavClass}
-          variant={section === "rate" ? "default" : "ghost"}
-          onClick={() => chooseSection("rate")}
+          variant={section === "settings" ? "default" : "ghost"}
+          onClick={() => chooseSection("settings")}
         >
-          <ShieldAlert className="size-4" />
-          限流管理
+          <Settings className="size-4" />
+          系统设置
         </Button>
         <Button
           type="button"
@@ -256,8 +286,8 @@ export function AdminPanel({
           <StatsOverview request={request} notify={notify} />
         ) : section === "codes" ? (
           <CardManagement request={request} notify={notify} skus={skus} />
-        ) : section === "rate" ? (
-          <RateLimitManagement request={request} notify={notify} />
+        ) : section === "settings" ? (
+          <SettingsPanel request={request} notify={notify} />
         ) : (
           <SkuManagement
             request={request}

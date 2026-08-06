@@ -14,7 +14,7 @@ MCSManager 卡密兑换系统前端：React 19 + TypeScript + Vite + Tailwind CS
 - 数据概况（后端统计接口）：`src/components/admin/StatsOverview.tsx`
 - 卡密表格、服务端分页、本地 UUID 生成、导入、详情：`src/components/admin/CardManagement.tsx`
 - 套餐创建/编辑/复制/删除及 Docker 镜像：`src/components/admin/SkuManagement.tsx`
-- 限流开关、参数、封禁 IP 列表：`src/components/admin/RateLimitManagement.tsx`
+- 系统设置（顶部横向分页：验证码配置、限流开关/参数/封禁 IP 列表）：`src/components/admin/SettingsPanel.tsx`、`src/components/admin/CaptchaSettings.tsx`、`src/components/admin/RateLimitManagement.tsx`
 - 通用 UI 组件：`src/components/ui/`（button、input、switch 等）
 - API 请求、通知、公共环境变量：`src/lib/client.ts`
 - 类型定义：`src/components/admin/types.ts`
@@ -43,7 +43,7 @@ MCSManager 卡密兑换系统前端：React 19 + TypeScript + Vite + Tailwind CS
 - 卡密格式：UUID 文本；前端 `isUUIDCode` 校验，导入/生成上限 1 万张。
 - 兑换任务轮询：任务过期（404）时停止轮询并提示"任务已过期"，不得无限重试。
 - 生成卡密完全在浏览器本地（`crypto.randomUUID` + `Set` 去重），生成不会入库，需单独导入。
-- 兑换与登录依赖 Cap 人机验证：Cap 服务不可用时用户无法完成验证（拿不到 token），表单提交按钮禁用，发不出有效请求，属预期行为。
+- 兑换与登录的人机验证配置（提供商、地址、Site Key）由后端公开端点 `GET /api/captcha/config` 下发，前端不配置任何 `VITE_CAPTCHA_*` 变量；配置在后端数据库中存储，管理面板"系统设置 → 验证码"中修改。`provider` 为 `null` 时不渲染验证组件、提交按钮不受 token 限制；配置 `cap`/`turnstile`/`hcaptcha` 时渲染对应组件，验证服务不可用时用户无法完成验证（拿不到 token），表单提交按钮禁用，发不出有效请求，属预期行为。页面加载配置前提交按钮禁用。
 - 环境变量以 `VITE_` 开头，构建时注入且会公开给浏览器，不能放任何私密凭据。
 
 ## 开发与验证命令

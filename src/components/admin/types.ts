@@ -128,6 +128,13 @@ export type RateLimitConfig = {
   redeemBlocked: RateLimitEntry[];
 };
 
+export type CaptchaConfig = {
+  provider: string | null;
+  url: string;
+  siteKey: string;
+  secretKey: string;
+};
+
 export const codeStateLabels: Record<CodeState, string> = {
   0: "未使用",
   1: "已使用",

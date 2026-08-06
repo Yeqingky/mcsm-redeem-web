@@ -167,15 +167,8 @@ export function RateLimitManagement({
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-5">
-      <div>
-        <h2 className="text-2xl font-semibold">限流管理</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          配置登录与兑换的失败次数限制与封禁时长，并查看、解除被封禁的 IP
-        </p>
-      </div>
-
       <div
-        className={`grid gap-5 rounded-lg border p-4 sm:max-w-xl ${
+        className={`grid gap-5 rounded-lg border bg-card p-4 sm:max-w-xl ${
           enabled ? "" : "opacity-60"
         }`}
       >
