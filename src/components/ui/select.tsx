@@ -68,7 +68,7 @@ export function Select<T extends string | number>({
         disabled={disabled}
         className={`flex h-10 w-full items-center justify-between gap-2 px-3 text-sm text-foreground outline-none transition-[background-color,transform] duration-100 focus:ring-2 focus:ring-ring active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none motion-reduce:active:scale-100 ${
           variant === "filled"
-            ? "rounded-t-lg border-0 border-b border-input bg-muted focus:border-primary"
+            ? "rounded-md border-0 bg-muted"
             : "rounded-md border bg-background"
         }`}
         onClick={toggle}

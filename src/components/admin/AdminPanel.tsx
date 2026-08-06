@@ -29,8 +29,38 @@ import { SkuManagement } from "./SkuManagement";
 import { StatsOverview } from "./StatsOverview";
 import type { AdminRequest, Notify, SKU } from "./types";
 
-const sidebarNavClass =
-  "justify-start transition-transform duration-100 active:translate-y-0 active:scale-[0.98] active:brightness-100 active:shadow-none";
+// 参考 cloudreve SideNavItem：圆角胶囊、32px 高、激活态淡蓝背景
+function navItemClass(active: boolean) {
+  return `flex h-8 w-full items-center justify-start gap-3.5 rounded-full px-7 text-sm outline-none transition-colors duration-150 motion-reduce:transition-none ${
+    active
+      ? "bg-blue-100 font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+  }`;
+}
+
+function NavItem({
+  active,
+  icon,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={navItemClass(active)}
+      aria-current={active ? "page" : undefined}
+      onClick={onClick}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
 
 export function AdminPanel({
   baseRequest,
@@ -218,7 +248,7 @@ export function AdminPanel({
   }
 
   return (
-    <div className="admin-shell overflow-hidden rounded-xl border bg-card shadow-sm">
+    <div className="admin-shell">
       {sidebarOpen && (
         <div
           className="fixed inset-0 top-16 z-40 bg-black/55 md:hidden"
@@ -227,59 +257,46 @@ export function AdminPanel({
         />
       )}
       <aside
-        className={`fixed bottom-0 left-0 top-16 z-50 flex w-64 shrink-0 -translate-x-full flex-col gap-2 bg-card p-3 transition-transform duration-200 md:static md:w-52 md:translate-x-0 md:flex-col md:border-r md:border-b-0 ${
+        className={`fixed bottom-0 left-0 top-16 z-50 flex w-64 shrink-0 -translate-x-full flex-col gap-2 bg-muted px-2 py-3 transition-transform duration-200 md:static md:w-56 md:translate-x-0 md:border-r md:border-border ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="hidden px-3 pb-3 pt-2 md:block">
+        <div className="hidden px-3 pb-2 pt-1 md:block">
           <p className="font-semibold">管理面板</p>
           <p className="mt-1 text-xs text-muted-foreground">MCSM Redeem</p>
         </div>
-        <Button
-          type="button"
-          className={sidebarNavClass}
-          variant={section === "stats" ? "default" : "ghost"}
+        <NavItem
+          active={section === "stats"}
+          icon={<BarChart3 className="size-4 shrink-0" />}
+          label="数据概况"
           onClick={() => chooseSection("stats")}
-        >
-          <BarChart3 className="size-4" />
-          数据概况
-        </Button>
-        <Button
-          type="button"
-          className={sidebarNavClass}
-          variant={section === "codes" ? "default" : "ghost"}
+        />
+        <NavItem
+          active={section === "codes"}
+          icon={<TicketCheck className="size-4 shrink-0" />}
+          label="卡密管理"
           onClick={() => chooseSection("codes")}
-        >
-          <TicketCheck className="size-4" />
-          卡密管理
-        </Button>
-        <Button
-          type="button"
-          className={sidebarNavClass}
-          variant={section === "skus" ? "default" : "ghost"}
+        />
+        <NavItem
+          active={section === "skus"}
+          icon={<Package className="size-4 shrink-0" />}
+          label="套餐管理"
           onClick={() => chooseSection("skus")}
-        >
-          <Package className="size-4" />
-          套餐管理
-        </Button>
-        <Button
-          type="button"
-          className={sidebarNavClass}
-          variant={section === "settings" ? "default" : "ghost"}
+        />
+        <NavItem
+          active={section === "settings"}
+          icon={<Settings className="size-4 shrink-0" />}
+          label="系统设置"
           onClick={() => chooseSection("settings")}
-        >
-          <Settings className="size-4" />
-          系统设置
-        </Button>
-        <Button
+        />
+        <button
           type="button"
-          className="mt-auto justify-start"
-          variant="ghost"
+          className={`${navItemClass(false)} mt-auto`}
           onClick={() => void logout()}
         >
-          <LogOut className="size-4" />
-          <span className="hidden sm:inline">退出登录</span>
-        </Button>
+          <LogOut className="size-4 shrink-0" />
+          退出登录
+        </button>
       </aside>
       <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-4 sm:p-6">
         {section === "stats" ? (

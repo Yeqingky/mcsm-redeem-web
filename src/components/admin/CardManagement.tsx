@@ -411,7 +411,7 @@ export function CardManagement({
 
   return (
     <div className="flex min-h-0 flex-col gap-5 md:h-full">
-      <div>
+      <div className="pl-4">
         <h2 className="text-2xl font-semibold">卡密管理</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           筛选、查看、导入以及批量启用或禁用卡密

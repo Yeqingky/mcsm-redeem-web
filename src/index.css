@@ -93,7 +93,7 @@ header {
   padding: 0 max(24px, calc((100% - 760px) / 2));
 }
 header.admin-header {
-  padding: 0 max(24px, calc((100% - 1440px) / 2));
+  padding: 0 24px;
 }
 main {
   display: flex;
@@ -109,8 +109,9 @@ main > * {
   width: 100%;
 }
 .admin-main {
-  max-width: 1440px;
-  align-items: flex-start;
+  max-width: none;
+  align-items: stretch;
+  padding: 0;
 }
 .admin-login {
   display: flex;
@@ -119,7 +120,7 @@ main > * {
 }
 .admin-shell {
   display: flex;
-  height: calc(100vh - 112px);
+  height: calc(100vh - 64px);
   min-height: 520px;
 }
 .result {

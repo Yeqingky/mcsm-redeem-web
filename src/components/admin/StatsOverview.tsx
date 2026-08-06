@@ -1,5 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { LoaderCircle, RefreshCw } from "lucide-react";
+import {
+  Ban,
+  Calendar,
+  CalendarDays,
+  CalendarRange,
+  CheckCircle2,
+  CircleDashed,
+  LoaderCircle,
+  Lock,
+  RefreshCw,
+  TicketCheck,
+} from "lucide-react";
 import { Button } from "../ui/button";
 import type { AdminRequest, Notify, Stats } from "./types";
 
@@ -253,19 +264,64 @@ export function StatsOverview({
   });
 
   const items = [
-    { label: "总卡密数量", value: summary.total },
-    { label: "已使用卡密数量", value: summary.used },
-    { label: "已禁用卡密数量", value: summary.disabled },
-    { label: "已锁定卡密数量", value: summary.locked },
-    { label: "未使用卡密数量", value: summary.unused },
-    { label: "今日兑换数量", value: summary.todayCount },
-    { label: "本周兑换数量", value: summary.weekCount },
-    { label: "本月兑换数量", value: summary.monthCount },
+    {
+      label: "总卡密数量",
+      value: summary.total,
+      icon: TicketCheck,
+      color: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
+    },
+    {
+      label: "未使用卡密数量",
+      value: summary.unused,
+      icon: CircleDashed,
+      color:
+        "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
+    },
+    {
+      label: "已使用卡密数量",
+      value: summary.used,
+      icon: CheckCircle2,
+      color:
+        "bg-green-100 text-green-600 dark:bg-green-950 dark:text-green-400",
+    },
+    {
+      label: "已禁用卡密数量",
+      value: summary.disabled,
+      icon: Ban,
+      color: "bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400",
+    },
+    {
+      label: "已锁定卡密数量",
+      value: summary.locked,
+      icon: Lock,
+      color:
+        "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
+    },
+    {
+      label: "今日兑换数量",
+      value: summary.todayCount,
+      icon: CalendarDays,
+      color: "bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400",
+    },
+    {
+      label: "本周兑换数量",
+      value: summary.weekCount,
+      icon: CalendarRange,
+      color:
+        "bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400",
+    },
+    {
+      label: "本月兑换数量",
+      value: summary.monthCount,
+      icon: Calendar,
+      color:
+        "bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400",
+    },
   ];
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-5">
-      <div className="flex flex-wrap items-start justify-between gap-2">
+      <div className="flex flex-wrap items-start justify-between gap-2 pl-4">
         <div>
           <h2 className="text-2xl font-semibold">数据概况</h2>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -291,34 +347,50 @@ export function StatsOverview({
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
-        {items.map((item) => (
-          <div className="rounded-xl border bg-card p-4" key={item.label}>
-            <p className="text-sm text-muted-foreground">{item.label}</p>
-            <p className="mt-1.5 text-3xl font-bold tracking-tight">
-              {loaded ? item.value : "—"}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {!mobile && (
-        <div className="rounded-xl border bg-card p-4">
-          <h3 className="mb-3 text-sm font-medium text-muted-foreground">
-            最近 {days} 天兑换量
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
+        <div className="flex flex-col justify-center rounded-xl border bg-card p-4 lg:col-span-2">
+          <h3 className="mb-4 text-sm font-medium text-muted-foreground">
+            数据统计
           </h3>
-          {loaded ? (
-            <DailyChart daily={daily} />
-          ) : (
-            <div className="grid h-56 place-items-center text-sm text-muted-foreground">
-              <span>
-                <LoaderCircle className="mr-2 inline size-4 animate-spin" />
-                正在读取统计数据
-              </span>
-            </div>
-          )}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-5">
+            {items.map((item) => (
+              <div className="flex items-center gap-3" key={item.label}>
+                <span
+                  className={`grid size-10 shrink-0 place-items-center rounded-full ${item.color}`}
+                >
+                  <item.icon className="size-5" />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-xl font-bold tracking-tight">
+                    {loaded ? item.value : "—"}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {item.label}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      )}
+
+        {!mobile && (
+          <div className="flex flex-col justify-center rounded-xl border bg-card p-4 lg:col-span-3">
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              最近 {days} 天兑换量
+            </h3>
+            {loaded ? (
+              <DailyChart daily={daily} />
+            ) : (
+              <div className="grid h-56 place-items-center text-sm text-muted-foreground">
+                <span>
+                  <LoaderCircle className="mr-2 inline size-4 animate-spin" />
+                  正在读取统计数据
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

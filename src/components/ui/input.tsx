@@ -11,7 +11,7 @@ export const Input = React.forwardRef<
     className={cn(
       "flex h-10 w-full px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring",
       variant === "filled"
-        ? "rounded-t-lg border-0 border-b border-input bg-muted focus:border-primary"
+        ? "rounded-md border-0 bg-muted"
         : "rounded-md border border-input bg-background",
       className,
     )}

@@ -20,7 +20,7 @@ export function SettingsPanel({
   const [tab, setTab] = useState<"captcha" | "rate">("captcha");
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
-      <div>
+      <div className="pl-4">
         <h2 className="text-2xl font-semibold">系统设置</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           配置人机验证与登录、兑换的限流策略
