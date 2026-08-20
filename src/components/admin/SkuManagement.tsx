@@ -437,7 +437,7 @@ export function SkuManagement({
   );
   const dockerImageReady =
     draft.processType !== "docker" ||
-    (!imagesLoading && draft.docker.image !== "");
+    (!imagesLoading && draft.docker.image.trim() !== "");
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-5">

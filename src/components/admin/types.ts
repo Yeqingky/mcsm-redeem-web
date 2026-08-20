@@ -87,7 +87,6 @@ export type Stats = {
 
 export type CodeStatus = CodeRecord & {
   username: string;
-  password: string;
   ipAddress: string;
 };
 

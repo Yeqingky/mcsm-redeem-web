@@ -960,9 +960,6 @@ export function CardManagement({
                   "—"
                 )}
               </p>
-              <p>
-                密码：<code>{detail.password || "—"}</code>
-              </p>
             </div>
           </div>
         </div>
