@@ -21,8 +21,32 @@ export type DockerTemplate = {
   extraArgs: string[];
 };
 
+export type DaemonRef = {
+  panelId: number;
+  daemonId: string;
+};
+
+export type Panel = {
+  id: number;
+  name: string;
+  apiUrl: string;
+  apiKey: string;
+  createdAt: number;
+};
+
+export type DaemonInfo = {
+  uuid: string;
+  ip: string;
+  port: string | number;
+  available: boolean;
+  remarks: string;
+  panelId: number;
+  panelName: string;
+};
+
 export type SKUInput = {
   alias: string;
+  daemonRefs: DaemonRef[];
   nickname: string;
   startCommand: string;
   stopCommand: string;
@@ -143,6 +167,7 @@ export const codeStateLabels: Record<CodeState, string> = {
 
 export const defaultSKU: SKUInput = {
   alias: "",
+  daemonRefs: [],
   nickname: "",
   startCommand: "",
   stopCommand: "stop",

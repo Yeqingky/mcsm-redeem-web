@@ -1,4 +1,4 @@
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import {
   CircleHelp,
   Copy,
@@ -17,10 +17,14 @@ import { Textarea } from "../ui/textarea";
 import {
   defaultSKU,
   type AdminRequest,
+  type DaemonInfo,
+  type DaemonRef,
   type Notify,
+  type Panel,
   type SKU,
   type SKUInput,
 } from "./types";
+import { Cascader } from "../ui/cascader";
 
 function formatTime(value: number) {
   return new Date(value).toLocaleString();
@@ -296,6 +300,38 @@ export function SkuManagement({
   const [imagesLoading, setImagesLoading] = useState(false);
   const [imagesError, setImagesError] = useState("");
   const imageRequestRevision = useRef(0);
+  const [panels, setPanels] = useState<Panel[]>([]);
+  const [daemonsByPanel, setDaemonsByPanel] = useState<Record<number, DaemonInfo[]>>({});
+  const [panelsLoading, setPanelsLoading] = useState(false);
+
+  useEffect(() => {
+    if (editorOpen) {
+      void loadPanelsAndDaemons();
+    }
+  }, [editorOpen]);
+
+  // Cascader 选项：一级 Panel，二级 Daemon
+  const cascaderOptions = panels.map((panel) => ({
+    label: panel.name,
+    value: String(panel.id),
+    children: (daemonsByPanel[panel.id] ?? []).map((d) => ({
+      label: d.remarks || `${d.ip}:${d.port}` || d.uuid,
+      value: `${panel.id}:${d.uuid}`,
+    })),
+  }));
+
+  // daemonRefs <-> cascader value 互转
+  function refsToValues(refs: DaemonRef[] | undefined): string[] {
+    return (refs ?? []).map((r) => `${r.panelId}:${r.daemonId}`);
+  }
+  function valuesToRefs(values: string[]): DaemonRef[] {
+    return values
+      .map((v) => {
+        const [panelId, daemonId] = v.split(":");
+        return { panelId: Number(panelId), daemonId };
+      })
+      .filter((r) => Number.isFinite(r.panelId) && r.daemonId);
+  }
 
   async function loadDockerImages(currentImage: string) {
     const revision = ++imageRequestRevision.current;
@@ -314,6 +350,46 @@ export function SkuManagement({
       });
     } finally {
       if (revision === imageRequestRevision.current) setImagesLoading(false);
+    }
+  }
+
+  async function loadPanelsAndDaemons() {
+    setPanelsLoading(true);
+    try {
+      const panelList = await request<Panel[]>("/api/admin/panels");
+      setPanels(panelList ?? []);
+      const map: Record<number, DaemonInfo[]> = {};
+      await Promise.all(
+        panelList.map(async (panel) => {
+          try {
+            const daemons = await request<DaemonInfo[]>(
+              `/api/admin/panels/${panel.id}/daemons`,
+            );
+            map[panel.id] = daemons ?? [];
+          } catch {
+            map[panel.id] = [];
+          }
+        }),
+      );
+      setDaemonsByPanel(map);
+      // 默认勾选全部：仅当当前未选择任何节点时，自动选中所有可用节点
+      setDraft((value) => {
+        if (value.daemonRefs && value.daemonRefs.length > 0) return value;
+        const all: DaemonRef[] = [];
+        for (const panel of panelList ?? []) {
+          for (const d of map[panel.id] ?? []) {
+            all.push({ panelId: panel.id, daemonId: d.uuid });
+          }
+        }
+        return { ...value, daemonRefs: all };
+      });
+    } catch (error) {
+      setPanels([]);
+      notify("error", "读取面板列表失败", {
+        description: (error as Error).message,
+      });
+    } finally {
+      setPanelsLoading(false);
     }
   }
 
@@ -380,6 +456,7 @@ export function SkuManagement({
         env: cleanLines(draft.docker.env),
         extraArgs: cleanLines(draft.docker.extraArgs),
       },
+      daemonRefs: draft.daemonRefs ?? [],
     };
   }
 
@@ -606,6 +683,25 @@ export function SkuManagement({
                       setDraft((value) => ({ ...value, type }))
                     }
                   />
+                  <Field
+                    label="可用节点"
+                    hint="选择实例可部署的节点；多选时每个卡密随机落在其中一个节点。"
+                  >
+                    <Cascader
+                      options={cascaderOptions}
+                      value={refsToValues(draft.daemonRefs)}
+                      onChange={(values) =>
+                        setDraft((value) => ({
+                          ...value,
+                          daemonRefs: valuesToRefs(values),
+                        }))
+                      }
+                      disabled={panelsLoading}
+                      placeholder={
+                        panelsLoading ? "正在读取面板…" : "可用节点"
+                      }
+                    />
+                  </Field>
                 </Section>
 
                 <Section title="启动与文件" open>

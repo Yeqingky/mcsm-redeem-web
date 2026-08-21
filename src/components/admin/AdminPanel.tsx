@@ -4,6 +4,7 @@ import {
   KeyRound,
   LogOut,
   Package,
+  Server,
   Settings,
   TicketCheck,
 } from "lucide-react";
@@ -24,6 +25,7 @@ import {
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { CardManagement } from "./CardManagement";
+import { NodeManagement } from "./NodeManagement";
 import { SettingsPanel } from "./SettingsPanel";
 import { SkuManagement } from "./SkuManagement";
 import { StatsOverview } from "./StatsOverview";
@@ -80,7 +82,7 @@ export function AdminPanel({
   const [capToken, setCapToken] = useState("");
   const [captchaConfig, setCaptchaConfig] = useState<CaptchaConfig>();
   const [section, setSection] = useState<
-    "stats" | "codes" | "skus" | "settings"
+    "stats" | "codes" | "skus" | "nodes" | "settings"
   >("stats");
   const [skus, setSkus] = useState<SKU[]>([]);
   const cap = useRef<CaptchaHandle>(null);
@@ -181,7 +183,9 @@ export function AdminPanel({
     }
   }
 
-  function chooseSection(next: "stats" | "codes" | "skus" | "settings") {
+  function chooseSection(
+    next: "stats" | "codes" | "skus" | "nodes" | "settings",
+  ) {
     setSection(next);
     onCloseSidebar();
   }
@@ -284,6 +288,12 @@ export function AdminPanel({
           onClick={() => chooseSection("skus")}
         />
         <NavItem
+          active={section === "nodes"}
+          icon={<Server className="size-4 shrink-0" />}
+          label="节点管理"
+          onClick={() => chooseSection("nodes")}
+        />
+        <NavItem
           active={section === "settings"}
           icon={<Settings className="size-4 shrink-0" />}
           label="系统设置"
@@ -303,6 +313,8 @@ export function AdminPanel({
           <StatsOverview request={request} notify={notify} />
         ) : section === "codes" ? (
           <CardManagement request={request} notify={notify} skus={skus} />
+        ) : section === "nodes" ? (
+          <NodeManagement request={request} notify={notify} />
         ) : section === "settings" ? (
           <SettingsPanel request={request} notify={notify} />
         ) : (
