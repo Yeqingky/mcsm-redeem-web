@@ -1,6 +1,7 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
   BarChart3,
+  Info,
   KeyRound,
   LogOut,
   Package,
@@ -25,6 +26,7 @@ import {
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { CardManagement } from "./CardManagement";
+import { AboutPanel } from "./AboutPanel";
 import { NodeManagement } from "./NodeManagement";
 import { SettingsPanel } from "./SettingsPanel";
 import { SkuManagement } from "./SkuManagement";
@@ -82,7 +84,7 @@ export function AdminPanel({
   const [capToken, setCapToken] = useState("");
   const [captchaConfig, setCaptchaConfig] = useState<CaptchaConfig>();
   const [section, setSection] = useState<
-    "stats" | "codes" | "skus" | "nodes" | "settings"
+    "stats" | "codes" | "skus" | "nodes" | "settings" | "about"
   >("stats");
   const [skus, setSkus] = useState<SKU[]>([]);
   const cap = useRef<CaptchaHandle>(null);
@@ -184,7 +186,7 @@ export function AdminPanel({
   }
 
   function chooseSection(
-    next: "stats" | "codes" | "skus" | "nodes" | "settings",
+    next: "stats" | "codes" | "skus" | "nodes" | "settings" | "about",
   ) {
     setSection(next);
     onCloseSidebar();
@@ -299,6 +301,12 @@ export function AdminPanel({
           label="系统设置"
           onClick={() => chooseSection("settings")}
         />
+        <NavItem
+          active={section === "about"}
+          icon={<Info className="size-4 shrink-0" />}
+          label="关于"
+          onClick={() => chooseSection("about")}
+        />
         <button
           type="button"
           className={`${navItemClass(false)} mt-auto`}
@@ -317,6 +325,8 @@ export function AdminPanel({
           <NodeManagement request={request} notify={notify} />
         ) : section === "settings" ? (
           <SettingsPanel request={request} notify={notify} />
+        ) : section === "about" ? (
+          <AboutPanel request={request} />
         ) : (
           <SkuManagement
             request={request}

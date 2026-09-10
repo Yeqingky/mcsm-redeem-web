@@ -16,6 +16,7 @@ MCSManager 卡密兑换系统前端：React 19 + TypeScript + Vite + Tailwind CS
 - 卡密表格、服务端分页、本地 UUID 生成、导入、详情：`src/components/admin/CardManagement.tsx`（详情弹窗仅展示 `username`/`ipAddress`，`v1.0.0` 起不再展示密码）
 - 套餐创建/编辑/复制/删除及 Docker 镜像：`src/components/admin/SkuManagement.tsx`
 - 系统设置（顶部横向分页：验证码配置、限流开关/参数/封禁 IP 列表）：`src/components/admin/SettingsPanel.tsx`、`src/components/admin/CaptchaSettings.tsx`、`src/components/admin/RateLimitManagement.tsx`
+- 关于页（前端构建提交、后端版本与提交、仓库地址、MIT 许可）：`src/components/admin/AboutPanel.tsx`，侧边栏位置在"系统设置"下方
 - 通用 UI 组件：`src/components/ui/`（button、input、switch 等）
 - API 请求、通知、公共环境变量：`src/lib/client.ts`
 - 类型定义：`src/components/admin/types.ts`（`CodeStatus` 自 `v1.0.0` 起仅含 `username`/`ipAddress`，无 `password`）
@@ -48,6 +49,9 @@ MCSManager 卡密兑换系统前端：React 19 + TypeScript + Vite + Tailwind CS
 - 兑换结果：`GET /api/tasks/{id}` 在 `TASK_TTL` 内返回的 `Result` 含 `username`/`password`/`instanceId`/`endTime`，密码仅此一次可见，前端需提示用户及时保存。
 - 兑换与登录的人机验证配置（提供商、地址、Site Key）由后端公开端点 `GET /api/captcha/config` 下发，前端不配置任何 `VITE_CAPTCHA_*` 变量；配置在后端数据库中存储，管理面板"系统设置 → 验证码"中修改。`provider` 为 `null` 时不渲染验证组件、提交按钮不受 token 限制；配置 `cap`/`turnstile`/`hcaptcha` 时渲染对应组件，验证服务不可用时用户无法完成验证（拿不到 token），表单提交按钮禁用，发不出有效请求，属预期行为。页面加载配置前提交按钮禁用。
 - 环境变量以 `VITE_` 开头，构建时注入且会公开给浏览器，不能放任何私密凭据。
+- 关于页后端版本来自需鉴权的 `GET /api/admin/version`（返回 `version`/`commit`/`built`）。该端点**刻意不做成公开接口**，避免被用于版本指纹扫描；后端低于首次引入该端点的版本时返回 404，关于页必须优雅降级（显示"无法获取（后端版本过低）"），不得报错或阻断其它操作。
+- 前端构建提交由 `vite.config.ts` 的 `readBuildCommit()` 注入 `VITE_BUILD_COMMIT`，取值优先级：构建环境变量 / `.env` → `git rev-parse --short HEAD` → `unknown`。业务代码从 `src/lib/client.ts` 的 `buildCommit` 读取，不要直接读 `import.meta.env`。
+- 管理面板顶栏右上角不再提供 Github 链接（仓库地址改由关于页展示）；兑换页底部的 Github 链接保留。
 
 ## 开发与验证命令
 

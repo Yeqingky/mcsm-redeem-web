@@ -5,6 +5,10 @@ const api = String(import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 export const siteName = import.meta.env.VITE_SITE_NAME || "夜轻面板兑换页";
 export const logoUrl = String(import.meta.env.VITE_LOGO_URL || "").trim();
 export const panelUrl = String(import.meta.env.VITE_PANEL_URL || "").trim();
+// 前端构建对应的 git 提交短哈希，由 vite.config.ts 构建时注入（见该文件 readBuildCommit）。
+export const buildCommit = String(
+  import.meta.env.VITE_BUILD_COMMIT || "unknown",
+).trim();
 export const uuidCodePattern =
   "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 

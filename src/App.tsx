@@ -75,16 +75,7 @@ export default function App() {
               <Moon className="size-5" />
             )}
           </button>
-          {isAdmin ? (
-            <a
-              className="text-sm text-muted-foreground hover:underline"
-              href="https://github.com/Yeqingky/mcsm-redeem"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Github
-            </a>
-          ) : (
+          {isAdmin ? null : (
             <a className="text-sm text-muted-foreground" href="/admin">
               管理面板
             </a>
